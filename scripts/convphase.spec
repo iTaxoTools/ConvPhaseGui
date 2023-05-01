@@ -3,7 +3,7 @@
 block_cipher = None
 
 # Could also use pyinstaller's Entrypoint()
-a = Analysis(['taxi2.py'],
+a = Analysis(['convphase.py'],
              binaries=[],
              datas=[],
              hiddenimports=[],
@@ -24,7 +24,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,
           [],
-          name='Taxi2.1',
+          name='ConvPhase',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,

@@ -5,7 +5,7 @@
 
 import multiprocessing
 
-from itaxotools.taxi_gui import run
+from itaxotools.convphase_gui import run
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
