@@ -35,13 +35,24 @@ from itaxotools.taxi_gui.tasks.common.process import get_file_info
 from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric, PairwiseScore
 
 from . import process
-from .types import Subtask
+from .types import Subtask, Parameter
+
+
+def get_effective(property):
+    if property.value is None:
+        return property.default
+    return property.value
+
+
+class Parameters(EnumObject):
+    enum = Parameter
 
 
 class Model(TaskModel):
     task_name = 'ConvPhase'
 
     input_sequences = Property(SequenceModel, None)
+    parameters = Property(Parameters, Instance)
 
     busy_main = Property(bool, False)
     busy_sequence = Property(bool, False)
@@ -74,12 +85,21 @@ class Model(TaskModel):
         work_dir = self.temporary_path / timestamp
         work_dir.mkdir()
 
+        params = self.parameters.properties
+
         self.exec(
             Subtask.Main,
             process.execute,
 
             work_dir=work_dir,
             input_sequences=self.input_sequences.as_dict(),
+
+            number_of_iterations=get_effective(params.number_of_iterations),
+            thinning_interval=get_effective(params.thinning_interval),
+            burn_in=get_effective(params.burn_in),
+            phase_threshold=get_effective(params.phase_threshold),
+            allele_threshold=get_effective(params.allele_threshold),
+
         )
 
     def add_sequence_file(self, path):

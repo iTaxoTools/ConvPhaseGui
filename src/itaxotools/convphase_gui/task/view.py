@@ -24,7 +24,7 @@ from itaxotools.taxi_gui.utility import type_convert
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import TaskView
 from itaxotools.taxi_gui.view.widgets import (
-    GLineEdit, GSpinBox, NoWheelRadioButton, RadioButtonGroup)
+    GLineEdit, GSpinBox, NoWheelRadioButton, RadioButtonGroup, CategoryButton)
 
 from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric, PairwiseScore
 from itaxotools.taxi_gui.tasks.common.model import ItemProxyModel
@@ -32,9 +32,10 @@ from itaxotools.taxi_gui.tasks.common.view import (
     AlignmentModeSelector, DummyResultsCard, ProgressCard, SequenceSelector,
     TitleCard)
 
+from .types import Parameter
+
 
 class FastaSelector(SequenceSelector):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.controls.fasta.parse_organism.setVisible(False)
@@ -48,6 +49,78 @@ class FastaSelector(SequenceSelector):
     def setObject(self, object):
         super().setObject(object)
         self.controls.config.setVisible(False)
+
+
+class ParameterCard(Card):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.draw_title()
+        self.draw_contents()
+
+        self.controls.title.toggled.connect(self.handleToggled)
+
+        self.controls.title.setChecked(True)
+        self.controls.contents.setVisible(True)
+
+    def draw_title(self):
+        title = CategoryButton('Parameters')
+        title.setStyleSheet('font-size: 16px;')
+        self.addWidget(title)
+
+        self.controls.title = title
+
+    def draw_contents(self):
+
+        layout = QtWidgets.QGridLayout()
+        layout.setContentsMargins(0, 4, 0, 4)
+        layout.setHorizontalSpacing(16)
+        layout.setVerticalSpacing(8)
+        layout.setColumnStretch(2, 1)
+        row = 0
+
+        int_validator = QtGui.QIntValidator(self)
+
+        double_validator = QtGui.QDoubleValidator(self)
+        locale = QtCore.QLocale.c()
+        locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
+        double_validator.setLocale(locale)
+        double_validator.setBottom(0)
+        double_validator.setTop(1)
+
+        entries = {}
+
+        for param in Parameter:
+            label = QtWidgets.QLabel(param.label + ':')
+            description = QtWidgets.QLabel(param.description)
+            description.setStyleSheet("QLabel { font-style: italic; color: Palette(Shadow);}")
+
+            entry = GLineEdit('')
+            entry.setPlaceholderText(str(param.default))
+            validator = int_validator if param.type == int else double_validator
+            entry.setValidator(validator)
+            entries[param.key] = entry
+
+            layout.addWidget(label, row, 0)
+            layout.addWidget(entry, row, 1)
+            layout.addWidget(description, row, 2)
+            row += 1
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+        self.addWidget(widget)
+
+        self.controls.contents = widget
+        self.controls.entries = entries
+
+    def handleToggled(self, checked):
+        self.controls.contents.setVisible(checked)
+        QtCore.QTimer.singleShot(10, self.update)
+
+    def setContentsEnabled(self, enabled):
+        self.controls.contents.setEnabled(enabled)
+        color = 'Text' if enabled else 'Dark'
+        self.controls.title.setStyleSheet(
+            f'font-size: 16px; color: Palette({color});')
 
 
 class View(TaskView):
@@ -66,6 +139,7 @@ class View(TaskView):
         self.cards.dummy_results = DummyResultsCard(self)
         self.cards.progress = ProgressCard(self)
         self.cards.input_sequences = FastaSelector('Input sequences', self)
+        self.cards.parameters = ParameterCard(self)
 
         layout = QtWidgets.QVBoxLayout()
         for card in self.cards:
@@ -95,14 +169,20 @@ class View(TaskView):
         self.binder.bind(object.properties.dummy_results, self.cards.dummy_results.setPath)
         self.binder.bind(object.properties.dummy_results, self.cards.dummy_results.setVisible, lambda x: x is not None)
 
+        for param in Parameter:
+            entry = self.cards.parameters.controls.entries[param.key]
+            property = object.parameters.properties[param.key]
+            self.binder.bind(entry.textEditedSafe, property, lambda x: type_convert(x, param.type, None))
+            self.binder.bind(property, entry.setText, lambda x: type_convert(x, str, ''))
+
         self.binder.bind(object.properties.editable, self.setEditable)
 
     def setEditable(self, editable: bool):
-        for card in self.cards:
-            card.setEnabled(editable)
         self.cards.title.setEnabled(True)
         self.cards.dummy_results.setEnabled(True)
         self.cards.progress.setEnabled(True)
+        self.cards.input_sequences.setEnabled(editable)
+        self.cards.parameters.setContentsEnabled(editable)
 
     def save(self):
         path = self.getExistingDirectory('Save All')

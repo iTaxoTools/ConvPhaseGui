@@ -50,6 +50,12 @@ def execute(
 
     from itaxotools.convphase import main
 
+    print()
+    print('Running ConvPhase with parameters:')
+    for k, v in kwargs.items():
+        print(f'> {k} = {v}')
+    print()
+
     input_path = input_sequences.path
     output_path = work_dir / 'out'
 
