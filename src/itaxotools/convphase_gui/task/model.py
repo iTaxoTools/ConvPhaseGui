@@ -18,7 +18,7 @@
 
 from datetime import datetime
 from pathlib import Path
-from shutil import copytree
+from shutil import copyfile
 
 from itaxotools.common.bindings import Binder, EnumObject, Instance, Property
 
@@ -57,8 +57,8 @@ class Model(TaskModel):
     busy_main = Property(bool, False)
     busy_sequence = Property(bool, False)
 
-    dummy_results = Property(Path, None)
-    dummy_time = Property(float, None)
+    phased_results = Property(Path, None)
+    phased_time = Property(float, None)
 
     def __init__(self, name=None):
         super().__init__(name)
@@ -142,8 +142,8 @@ class Model(TaskModel):
         if report.id == Subtask.Main:
             time_taken = human_readable_seconds(report.result.seconds_taken)
             self.notification.emit(Notification.Info(f'{self.name} completed successfully!\nTime taken: {time_taken}.'))
-            self.dummy_results = report.result.output_path
-            self.dummy_time = report.result.seconds_taken
+            self.phased_results = report.result.output_path
+            self.phased_time = report.result.seconds_taken
             self.busy_main = False
             self.done = True
         if report.id == Subtask.AddSequenceFile:
@@ -168,10 +168,15 @@ class Model(TaskModel):
         self.busy_sequence = False
 
     def clear(self):
-        self.dummy_results = None
-        self.dummy_time = None
+        self.phased_results = None
+        self.phased_time = None
         self.done = False
 
     def save(self, destination: Path):
-        copytree(self.dummy_results, destination, dirs_exist_ok=True)
-        self.notification.emit(Notification.Info('Saved files successfully!'))
+        copyfile(self.phased_results, destination)
+        self.notification.emit(Notification.Info('Saved file successfully!'))
+
+    @property
+    def suggested_results(self):
+        path = self.input_sequences.file_item.object.info.path
+        return path.parent / f'{path.stem}.phased.fasta'

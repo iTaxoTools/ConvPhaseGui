@@ -18,7 +18,11 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from pathlib import Path
+
 from itaxotools.common.utility import AttrDict
+
+from itaxotools.taxi_gui import app
 
 from itaxotools.taxi_gui.utility import type_convert
 from itaxotools.taxi_gui.view.cards import Card
@@ -33,6 +37,98 @@ from itaxotools.taxi_gui.tasks.common.view import (
     TitleCard)
 
 from .types import Parameter
+
+
+class ResultViewer(Card):
+    view = QtCore.Signal(str, Path)
+    save = QtCore.Signal(str, Path)
+
+    def __init__(self, label_text, parent=None):
+        super().__init__(parent)
+        self.text = label_text
+        self.path = None
+
+        label = QtWidgets.QLabel(label_text)
+        label.setStyleSheet("""font-size: 16px;""")
+
+        check = QtWidgets.QLabel('\u2714')
+        check.setStyleSheet("""font-size: 16px; color: Palette(Shadow);""")
+
+        save = QtWidgets.QPushButton('Save')
+        save.clicked.connect(self.handleSave)
+
+        view = QtWidgets.QPushButton('View')
+        view.clicked.connect(self.handleView)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.setSpacing(0)
+        layout.addWidget(check)
+        layout.addSpacing(12)
+        layout.addWidget(label)
+        layout.addStretch(1)
+        layout.addWidget(save)
+        layout.addSpacing(16)
+        layout.addWidget(view)
+        self.addLayout(layout)
+
+        self.controls.view = view
+        self.controls.save = save
+
+    def setPath(self, path):
+        self.path = path
+        self.setVisible(path is not None)
+
+    def handleView(self):
+        self.view.emit(self.text, self.path)
+
+    def handleSave(self):
+        self.save.emit(self.text, self.path)
+
+
+class ResultDialog(QtWidgets.QDialog):
+    save = QtCore.Signal(Path)
+
+    def __init__(self, text, path, parent):
+        super().__init__(parent)
+        self.path = path
+
+        self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setWindowTitle(app.config.title + ' - ' + text)
+        self.resize(460, 680)
+        self.setModal(True)
+
+        viewer = QtWidgets.QPlainTextEdit()
+        viewer.setReadOnly(True)
+        font = QtGui.QFont('monospace')
+        font.setStyleHint(QtGui.QFont.Monospace)
+        viewer.setFont(font)
+
+        with open(path) as file:
+            viewer.setPlainText(file.read())
+
+        save = QtWidgets.QPushButton('Save')
+        save.clicked.connect(self.handleSave)
+
+        close = QtWidgets.QPushButton('Close')
+        close.clicked.connect(self.reject)
+        close.setDefault(True)
+
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(save)
+        buttons.addWidget(close)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+        layout.addWidget(viewer)
+        layout.addLayout(buttons)
+
+        self.setLayout(layout)
+
+    def handleSave(self):
+        self.save.emit(self.path)
 
 
 class FastaSelector(SequenceSelector):
@@ -136,7 +232,7 @@ class View(TaskView):
             'Use PHASE to reconstruct haplotypes from population genotype data. \n'
             'Input and output is done with FASTA files via SeqPhase.',
             self)
-        self.cards.dummy_results = DummyResultsCard(self)
+        self.cards.results = ResultViewer('Phased results', self)
         self.cards.progress = ProgressCard(self)
         self.cards.input_sequences = FastaSelector('Input sequences', self)
         self.cards.parameters = ParameterCard(self)
@@ -166,8 +262,11 @@ class View(TaskView):
         self.binder.bind(object.properties.input_sequences, self.cards.input_sequences.setObject)
         self.binder.bind(self.cards.input_sequences.addInputFile, object.add_sequence_file)
 
-        self.binder.bind(object.properties.dummy_results, self.cards.dummy_results.setPath)
-        self.binder.bind(object.properties.dummy_results, self.cards.dummy_results.setVisible, lambda x: x is not None)
+        self.binder.bind(object.properties.phased_results, self.cards.results.setPath)
+        self.binder.bind(object.properties.phased_results, self.cards.results.setVisible, lambda x: x is not None)
+
+        self.binder.bind(self.cards.results.view, self.view_results)
+        self.binder.bind(self.cards.results.save, self.save_results)
 
         for param in Parameter:
             entry = self.cards.parameters.controls.entries[param.key]
@@ -179,12 +278,20 @@ class View(TaskView):
 
     def setEditable(self, editable: bool):
         self.cards.title.setEnabled(True)
-        self.cards.dummy_results.setEnabled(True)
+        self.cards.results.setEnabled(True)
         self.cards.progress.setEnabled(True)
         self.cards.input_sequences.setEnabled(editable)
         self.cards.parameters.setContentsEnabled(editable)
 
-    def save(self):
-        path = self.getExistingDirectory('Save All')
+    def view_results(self, text, path):
+        dialog = ResultDialog(text, path, self.window())
+        dialog.save.connect(self.save_results)
+        self.window().msgShow(dialog)
+
+    def save_results(self):
+        path = self.getSavePath('Save phased results', str(self.object.suggested_results))
         if path:
             self.object.save(path)
+
+    def save(self):
+        self.save_results()
