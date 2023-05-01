@@ -32,4 +32,4 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False,
-          icon='../src/itaxotools/taxi_gui/logos/taxi2.ico' )
+          icon='../src/itaxotools/convphase_gui/logos/convphase.ico' )

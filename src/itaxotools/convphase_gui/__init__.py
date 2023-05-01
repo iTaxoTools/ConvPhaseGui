@@ -19,6 +19,23 @@
 """GUI entry point"""
 
 
+def load_resources():
+
+    from PySide6 import QtGui, QtCore
+
+    from itaxotools.common.resources import get_local
+    from itaxotools.common.widgets import VectorPixmap
+    from itaxotools.taxi_gui.app import resources, skin
+
+    root = __package__
+    resources.icons.app = lambda: QtGui.QIcon(
+        get_local(root, 'logos/convphase.ico'))
+    resources.pixmaps.logo_tool = lambda: VectorPixmap(
+        get_local(root, 'logos/convphase.svg'),
+        size=QtCore.QSize(192, 48),
+        colormap=skin.colormap_icon)
+
+
 def run():
     """
     Show the Taxi2 window and enter the main event loop.
@@ -34,7 +51,10 @@ def run():
     app.set_config(config)
     app.set_skin(skin)
 
+    load_resources()
+
     main = Main()
+    main.widgets.header.toolLogo.setFixedWidth(192)
     main.show()
 
     app.exec()
