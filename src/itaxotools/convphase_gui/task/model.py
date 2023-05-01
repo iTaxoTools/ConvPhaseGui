@@ -63,6 +63,8 @@ class Model(TaskModel):
     def __init__(self, name=None):
         super().__init__(name)
         self.exec(Subtask.Initialize, process.initialize)
+        self.can_open = True
+        self.can_save = True
 
     def readyTriggers(self):
         return [
@@ -171,6 +173,10 @@ class Model(TaskModel):
         self.phased_results = None
         self.phased_time = None
         self.done = False
+
+    def open(self, path):
+        self.clear()
+        self.add_sequence_file(path)
 
     def save(self, destination: Path):
         copyfile(self.phased_results, destination)
