@@ -21,6 +21,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from pathlib import Path
 
 from itaxotools.common.utility import AttrDict
+from itaxotools.common.widgets import VLineSeparator
 
 from itaxotools.taxi_gui import app
 
@@ -28,15 +29,95 @@ from itaxotools.taxi_gui.utility import type_convert
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import TaskView
 from itaxotools.taxi_gui.view.widgets import (
-    GLineEdit, GSpinBox, NoWheelRadioButton, RadioButtonGroup, CategoryButton)
+    GLineEdit, GSpinBox, NoWheelRadioButton, RadioButtonGroup, CategoryButton, LongLabel)
 
 from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric, PairwiseScore
 from itaxotools.taxi_gui.tasks.common.model import ItemProxyModel
 from itaxotools.taxi_gui.tasks.common.view import (
-    AlignmentModeSelector, DummyResultsCard, ProgressCard, SequenceSelector,
-    TitleCard)
+    AlignmentModeSelector, DummyResultsCard, ProgressCard, SequenceSelector)
 
 from .types import Parameter
+from . import strings
+
+
+class TitleCard(Card):
+    def __init__(self, description, citations, parent=None):
+        super().__init__(parent)
+
+        description = LongLabel(strings.description)
+        authors = LongLabel(strings.authors)
+        authors.setStyleSheet("LongLabel {color: Palette(Dark)}")
+
+        contents = QtWidgets.QVBoxLayout()
+        contents.addWidget(description)
+        contents.addWidget(authors)
+        contents.setSpacing(2)
+
+        homepage = QtWidgets.QPushButton('Homepage')
+        itaxotools = QtWidgets.QPushButton('iTaxoTools')
+        citations = QtWidgets.QPushButton('Citations')
+        citations.setFixedWidth(154)
+
+        homepage.clicked.connect(self.openHomepage)
+        itaxotools.clicked.connect(self.openItaxotools)
+        citations.clicked.connect(self.openCitations)
+
+        buttons = QtWidgets.QVBoxLayout()
+        buttons.addWidget(homepage)
+        buttons.addWidget(itaxotools)
+        buttons.addWidget(citations)
+        buttons.addStretch(1)
+        buttons.setSpacing(8)
+
+        separator = VLineSeparator(1)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(buttons, 0)
+        layout.addWidget(separator, 0)
+        layout.addLayout(contents, 1)
+        layout.setSpacing(16)
+        self.addLayout(layout)
+
+    def openHomepage(self):
+        QtGui.QDesktopServices.openUrl(strings.homepage_url)
+
+    def openCitations(self):
+        dialog = CitationDialog(strings.citations, self.window())
+        self.window().msgShow(dialog)
+
+    def openItaxotools(self):
+        QtGui.QDesktopServices.openUrl(strings.itaxotools_url)
+
+
+class CitationDialog(QtWidgets.QDialog):
+    def __init__(self, text, parent):
+        super().__init__(parent)
+
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setWindowTitle(app.config.title + ' - ' + 'Citations')
+        self.resize(400, 280)
+        self.setModal(True)
+
+        citations = QtWidgets.QPlainTextEdit()
+        citations.setReadOnly(True)
+        citations.setPlainText(strings.citations)
+        citations.setStyleSheet("QPlainTextEdit {color: Palette(Dark)}")
+
+        close = QtWidgets.QPushButton('Close')
+        close.clicked.connect(self.reject)
+        close.setDefault(True)
+
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(close)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+        layout.addWidget(citations)
+        layout.addLayout(buttons)
+
+        self.setLayout(layout)
 
 
 class ResultViewer(Card):
@@ -45,6 +126,7 @@ class ResultViewer(Card):
 
     def __init__(self, label_text, parent=None):
         super().__init__(parent)
+        self.setContentsMargins(6, 2, 6, 2)
         self.text = label_text
         self.path = None
 
@@ -62,9 +144,9 @@ class ResultViewer(Card):
 
         layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(0)
-        layout.addWidget(check)
-        layout.addSpacing(12)
         layout.addWidget(label)
+        layout.addSpacing(12)
+        layout.addWidget(check)
         layout.addStretch(1)
         layout.addWidget(save)
         layout.addSpacing(16)
@@ -134,8 +216,10 @@ class ResultDialog(QtWidgets.QDialog):
 class FastaSelector(SequenceSelector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setContentsMargins(6, 2, 6, 2)
+        self.controls.label.setMinimumWidth(168)
         self.controls.fasta.parse_organism.setVisible(False)
-        self.controls.browse.setText('Open')
+        self.controls.browse.setText('Browse')
 
     def set_model(self, combo, model):
         proxy_model = ItemProxyModel()
@@ -150,13 +234,12 @@ class FastaSelector(SequenceSelector):
 class ParameterCard(Card):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setContentsMargins(6, 2, 6, 2)
         self.draw_title()
         self.draw_contents()
 
         self.controls.title.toggled.connect(self.handleToggled)
-
-        self.controls.title.setChecked(True)
-        self.controls.contents.setVisible(True)
+        self.setExpanded(True)
 
     def draw_title(self):
         title = CategoryButton('Parameters')
@@ -172,6 +255,7 @@ class ParameterCard(Card):
         layout.setHorizontalSpacing(16)
         layout.setVerticalSpacing(8)
         layout.setColumnStretch(2, 1)
+        layout.setColumnMinimumWidth(0, 168)
         row = 0
 
         int_validator = QtGui.QIntValidator(self)
@@ -208,6 +292,10 @@ class ParameterCard(Card):
         self.controls.contents = widget
         self.controls.entries = entries
 
+    def setExpanded(self, expanded):
+        self.controls.title.setChecked(expanded)
+        self.controls.contents.setVisible(expanded)
+
     def handleToggled(self, checked):
         self.controls.contents.setVisible(checked)
         QtCore.QTimer.singleShot(10, self.update)
@@ -228,9 +316,9 @@ class View(TaskView):
     def draw(self):
         self.cards = AttrDict()
         self.cards.title = TitleCard(
-            'ConvPhase',
             'Use PHASE to reconstruct haplotypes from population genotype data. \n'
             'Input and output is done with FASTA files via SeqPhase.',
+            'citations here',
             self)
         self.cards.results = ResultViewer('Phased results', self)
         self.cards.progress = ProgressCard(self)
@@ -252,8 +340,6 @@ class View(TaskView):
         self.binder.bind(object.notification, self.showNotification)
         self.binder.bind(object.progression, self.cards.progress.showProgress)
 
-        self.binder.bind(object.properties.name, self.cards.title.setTitle)
-        self.binder.bind(object.properties.busy_main, self.cards.title.setBusy)
         self.binder.bind(object.properties.busy_main, self.cards.progress.setEnabled)
         self.binder.bind(object.properties.busy_main, self.cards.progress.setVisible)
         self.binder.bind(object.properties.busy_sequence, self.cards.input_sequences.setBusy)
@@ -264,6 +350,7 @@ class View(TaskView):
 
         self.binder.bind(object.properties.phased_results, self.cards.results.setPath)
         self.binder.bind(object.properties.phased_results, self.cards.results.setVisible, lambda x: x is not None)
+        self.binder.bind(object.properties.phased_results, self.cards.parameters.setExpanded, lambda x: x is None)
 
         self.binder.bind(self.cards.results.view, self.view_results)
         self.binder.bind(self.cards.results.save, self.save_results)
