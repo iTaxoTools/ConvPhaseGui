@@ -19,7 +19,7 @@
 from enum import Enum, auto
 
 
-class DereplicateSubtask(Enum):
+class Subtask(Enum):
     Main = auto()
     Initialize = auto()
     AddSequenceFile = auto()

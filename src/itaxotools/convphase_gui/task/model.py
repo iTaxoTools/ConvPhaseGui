@@ -35,23 +35,7 @@ from itaxotools.taxi_gui.tasks.common.process import get_file_info
 from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric, PairwiseScore
 
 from . import process
-from .types import DereplicateSubtask
-
-
-class PairwiseScores(EnumObject):
-    enum = PairwiseScore
-
-    def as_dict(self):
-        return {
-            score.key: self.properties[score.key].value
-            for score in self.enum
-        }
-
-    def is_valid(self):
-        return not any(
-            self.properties[score.key].value is None
-            for score in self.enum
-        )
+from .types import Subtask
 
 
 class Model(TaskModel):
@@ -67,19 +51,7 @@ class Model(TaskModel):
 
     def __init__(self, name=None):
         super().__init__(name)
-        self.exec(DereplicateSubtask.Initialize, process.initialize)
-
-    def set_metric_from_mode(self, mode: AlignmentMode):
-        if mode == AlignmentMode.AlignmentFree:
-            self.distance_metric = DistanceMetric.NCD
-        else:
-            self.distance_metric = DistanceMetric.Uncorrected
-
-    def set_similarity_from_mode(self, mode: AlignmentMode):
-        if mode == AlignmentMode.AlignmentFree:
-            self.similarity_threshold = 0.07
-        else:
-            self.similarity_threshold = 0.03
+        self.exec(Subtask.Initialize, process.initialize)
 
     def readyTriggers(self):
         return [
@@ -103,29 +75,24 @@ class Model(TaskModel):
         work_dir.mkdir()
 
         self.exec(
-            DereplicateSubtask.Main,
+            Subtask.Main,
             process.execute,
 
+            work_dir=work_dir,
             input_sequences=self.input_sequences.as_dict(),
         )
 
     def add_sequence_file(self, path):
         self.busy = True
         self.busy_sequence = True
-        self.exec(DereplicateSubtask.AddSequenceFile, get_file_info, path)
+        self.exec(Subtask.AddSequenceFile, get_file_info, path)
 
     def add_file_item_from_info(self, info):
-        if info.type == InputFile.Tabfile:
-            if len(info.headers) < 2:
-                self.notification.emit(Notification.Warn('Not enough columns in tabfile.'))
-                return
-            index = app.model.items.add_file(InputFileModel.Tabfile(info), focus=False)
-            return index.data(ItemModel.ItemRole)
-        elif info.type == InputFile.Fasta:
+        if info.type == InputFile.Fasta:
             index = app.model.items.add_file(InputFileModel.Fasta(info), focus=False)
             return index.data(ItemModel.ItemRole)
         else:
-            self.notification.emit(Notification.Warn('Unknown sequence-file format.'))
+            self.notification.emit(Notification.Warn(f'Unsupported sequence-file format: {info.type.__name__}'))
             return None
 
     def get_model_from_file_item(self, file_item, model_parent, *args, **kwargs):
@@ -150,16 +117,16 @@ class Model(TaskModel):
         self.input_sequences = self.get_model_from_file_item(file_item, SequenceModel)
 
     def onDone(self, report):
-        if report.id == DereplicateSubtask.Initialize:
+        if report.id == Subtask.Initialize:
             return
-        if report.id == DereplicateSubtask.Main:
+        if report.id == Subtask.Main:
             time_taken = human_readable_seconds(report.result.seconds_taken)
             self.notification.emit(Notification.Info(f'{self.name} completed successfully!\nTime taken: {time_taken}.'))
-            self.dummy_results = report.result.output_directory
+            self.dummy_results = report.result.output_path
             self.dummy_time = report.result.seconds_taken
             self.busy_main = False
             self.done = True
-        if report.id == DereplicateSubtask.AddSequenceFile:
+        if report.id == Subtask.AddSequenceFile:
             file_item = self.add_file_item_from_info(report.result)
             self.set_sequence_file_from_file_item(file_item)
             self.busy_sequence = False

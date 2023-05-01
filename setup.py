@@ -24,6 +24,7 @@ setup(
     ),
     python_requires='>=3.10.2, <4',
     install_requires=[
+        'convphase==0.0.1',
         'taxi-gui==0.2.dev0',
         'itaxotools-common==0.3.dev0',
         'pyside6>=6.1.1',

@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from time import perf_counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,10 +27,10 @@ from itaxotools.common.utility import AttrDict
 from itaxotools.taxi_gui.tasks.common.process import progress_handler, sequences_from_model
 from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric
 
-
 @dataclass
-class DereplicateResults:
-    pass
+class Results:
+    output_path: Path
+    seconds_taken: float
 
 
 def initialize():
@@ -43,24 +44,23 @@ def execute(
 
     input_sequences: AttrDict,
 
-    alignment_mode: AlignmentMode,
-    alignment_write_pairs: bool,
-    alignment_pairwise_scores: dict,
-
-    distance_metric: DistanceMetric,
-    distance_metric_bbc_k: int,
-    distance_linear: bool,
-    distance_matricial: bool,
-    distance_percentile: bool,
-    distance_precision: int,
-    distance_missing: str,
-
-    similarity_threshold: float,
-    length_threshold: int,
-
     **kwargs
 
 ) -> tuple[Path, float]:
 
-    print('INSERT CONVPHASE HERE')
-    return 42
+    from itaxotools.convphase import main
+
+    input_path = input_sequences.path
+    output_path = work_dir / 'out'
+
+    with open(input_path) as file:
+        input = file.read()
+
+    ts = perf_counter()
+    output = main(input)
+    tf = perf_counter()
+
+    with open(output_path, 'w') as file:
+        file.write(output)
+
+    return Results(output_path, tf - ts)
