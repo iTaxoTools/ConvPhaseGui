@@ -101,7 +101,7 @@ class CitationDialog(QtWidgets.QDialog):
         citations = QtWidgets.QPlainTextEdit()
         citations.setReadOnly(True)
         citations.setPlainText(strings.citations)
-        citations.setStyleSheet("QPlainTextEdit {color: Palette(Dark)}")
+        citations.setStyleSheet("QPlainTextEdit {color: Palette(Shadow)}")
 
         close = QtWidgets.QPushButton('Close')
         close.clicked.connect(self.reject)

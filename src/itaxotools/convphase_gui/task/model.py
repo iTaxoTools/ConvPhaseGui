@@ -94,7 +94,7 @@ class Model(TaskModel):
             process.execute,
 
             work_dir=work_dir,
-            input_sequences=self.input_sequences.as_dict(),
+            input_path=self.input_sequences.file_item.object.path,
 
             number_of_iterations=get_effective(params.number_of_iterations),
             thinning_interval=get_effective(params.thinning_interval),
@@ -110,30 +110,15 @@ class Model(TaskModel):
         self.exec(Subtask.AddSequenceFile, get_file_info, path)
 
     def add_file_item_from_info(self, info):
-        if info.type == InputFile.Fasta:
-            index = app.model.items.add_file(InputFileModel.Fasta(info), focus=False)
-            return index.data(ItemModel.ItemRole)
-        else:
-            self.notification.emit(Notification.Warn(f'Unsupported sequence-file format: {info.type.__name__}'))
-            return None
+        index = app.model.items.add_file(
+            InputFileModel(info.path, info.size),
+            focus=False)
+        return index.data(ItemModel.ItemRole)
 
     def get_model_from_file_item(self, file_item, model_parent, *args, **kwargs):
         if file_item is None:
             return None
-        try:
-            model_type = {
-                InputFileModel.Tabfile: {
-                    SequenceModel: SequenceModel.Tabfile,
-                    PartitionModel: PartitionModel.Tabfile,
-                },
-                InputFileModel.Fasta: {
-                    SequenceModel: SequenceModel.Fasta,
-                },
-            }[type(file_item.object)][model_parent]
-        except Exception:
-            self.notification.emit(Notification.Warn('Unexpected file type.'))
-            return None
-        return model_type(file_item, *args, **kwargs)
+        return SequenceModel(file_item)
 
     def set_sequence_file_from_file_item(self, file_item):
         self.input_sequences = self.get_model_from_file_item(file_item, SequenceModel)

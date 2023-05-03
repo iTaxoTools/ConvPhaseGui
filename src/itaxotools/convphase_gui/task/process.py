@@ -41,14 +41,14 @@ def initialize():
 def execute(
 
     work_dir: Path,
-
-    input_sequences: AttrDict,
+    input_path: Path,
 
     **kwargs
 
 ) -> tuple[Path, float]:
 
     from itaxotools.convphase import main
+    from time import sleep
 
     print()
     print('Running ConvPhase with parameters:')
@@ -56,8 +56,9 @@ def execute(
         print(f'> {k} = {v}')
     print()
 
-    input_path = input_sequences.path
-    output_path = work_dir / 'out'
+    # no good way to flush stdout, which results in garbled error messages
+    # just sleep for now
+    sleep(0.1)
 
     with open(input_path) as file:
         input = file.read()
@@ -66,6 +67,7 @@ def execute(
     output = main(input)
     tf = perf_counter()
 
+    output_path = work_dir / 'out'
     with open(output_path, 'w') as file:
         file.write(output)
 
