@@ -36,13 +36,25 @@ def load_resources():
         colormap=skin.colormap_icon)
 
 
+def find_task():
+    from itaxotools.taxi_gui.app import model
+    from .task.model import Model as ConvPhase
+
+    index = model.items.find_task(ConvPhase)
+    item = model.items.data(index, role=model.items.ItemRole)
+    return item.object
+
+
 def run():
     """
     Show the Taxi2 window and enter the main event loop.
     Imports are done locally to optimize multiprocessing.
     """
 
-    from itaxotools.taxi_gui.app import Application, skin
+    from argparse import ArgumentParser
+    from pathlib import Path
+
+    from itaxotools.taxi_gui.app import Application, skin, model
     from itaxotools.taxi_gui.main import Main
 
     from . import config
@@ -53,8 +65,16 @@ def run():
 
     load_resources()
 
+    parser = ArgumentParser(description='Convenient Phase')
+    parser.add_argument('input', nargs='?', type=str, help='Path to input file')
+    args = parser.parse_args()
+
     main = Main()
     main.widgets.header.toolLogo.setFixedWidth(192)
     main.show()
+
+    if args.input:
+        model = find_task()
+        model.open(Path(args.input))
 
     app.exec()
