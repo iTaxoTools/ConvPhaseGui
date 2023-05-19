@@ -177,7 +177,7 @@ class ResultDialog(QtWidgets.QDialog):
         self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle(app.config.title + ' - ' + text)
-        self.resize(460, 680)
+        self.resize(520, 680)
         self.setModal(True)
 
         viewer = QtWidgets.QPlainTextEdit()
@@ -338,6 +338,7 @@ class View(TaskView):
         self.binder.unbind_all()
 
         self.binder.bind(object.notification, self.showNotification)
+        self.binder.bind(object.request_confirmation, self.requestConfirmation)
         self.binder.bind(object.progression, self.cards.progress.showProgress)
 
         self.binder.bind(object.properties.busy_main, self.cards.progress.setEnabled)
@@ -362,6 +363,25 @@ class View(TaskView):
             self.binder.bind(property, entry.setText, lambda x: type_convert(x, str, ''))
 
         self.binder.bind(object.properties.editable, self.setEditable)
+
+    def requestConfirmation(self, warns, callback):
+        msgBox = QtWidgets.QMessageBox(self.window())
+        msgBox.setWindowTitle(f'{app.config.title} - Warning')
+        msgBox.setIcon(QtWidgets.QMessageBox.Warning)
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+
+        text = (
+            'Problems detected with input file: \n\n' +
+            '\n'.join('- ' + str(warn) for warn in warns) + '\n\n'
+            'The program may crash or produce false results. \n'
+            'Open file anyway?'
+        )
+        msgBox.setText(text)
+
+        result = self.window().msgShow(msgBox)
+        if result == QtWidgets.QMessageBox.Ok:
+            callback()
 
     def setEditable(self, editable: bool):
         self.cards.title.setEnabled(True)

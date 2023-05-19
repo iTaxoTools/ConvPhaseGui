@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from PySide6 import QtCore
+
 from datetime import datetime
 from pathlib import Path
 from shutil import copyfile
@@ -31,7 +33,6 @@ from itaxotools.taxi_gui.model.tasks import TaskModel
 from itaxotools.taxi_gui.types import InputFile, Notification
 from itaxotools.taxi_gui.utility import human_readable_seconds
 
-from itaxotools.taxi_gui.tasks.common.process import get_file_info
 from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric, PairwiseScore
 
 from . import process
@@ -50,6 +51,8 @@ class Parameters(EnumObject):
 
 class Model(TaskModel):
     task_name = 'ConvPhase'
+
+    request_confirmation = QtCore.Signal(object, object)
 
     input_sequences = Property(SequenceModel, None)
     parameters = Property(Parameters, Instance)
@@ -107,7 +110,7 @@ class Model(TaskModel):
     def add_sequence_file(self, path):
         self.busy = True
         self.busy_sequence = True
-        self.exec(Subtask.AddSequenceFile, get_file_info, path)
+        self.exec(Subtask.AddSequenceFile, process.scan, path)
 
     def add_file_item_from_info(self, info):
         index = app.model.items.add_file(
@@ -123,6 +126,10 @@ class Model(TaskModel):
     def set_sequence_file_from_file_item(self, file_item):
         self.input_sequences = self.get_model_from_file_item(file_item, SequenceModel)
 
+    def add_sequence_file_from_info(self, info):
+        file_item = self.add_file_item_from_info(info)
+        self.set_sequence_file_from_file_item(file_item)
+
     def onDone(self, report):
         if report.id == Subtask.Initialize:
             return
@@ -134,8 +141,15 @@ class Model(TaskModel):
             self.busy_main = False
             self.done = True
         if report.id == Subtask.AddSequenceFile:
-            file_item = self.add_file_item_from_info(report.result)
-            self.set_sequence_file_from_file_item(file_item)
+            info = report.result.info
+            warns = report.result.warns
+            if not warns:
+                self.add_sequence_file_from_info(info)
+            else:
+                self.request_confirmation.emit(
+                    warns,
+                    lambda: self.add_sequence_file_from_info(info)
+                )
             self.busy_sequence = False
         self.busy = False
 
