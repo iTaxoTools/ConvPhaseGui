@@ -326,6 +326,8 @@ class View(TaskView):
         self.binder.bind(object.notification, self.showNotification)
         self.binder.bind(object.request_confirmation, self.requestConfirmation)
         self.binder.bind(object.progression, self.cards.progress.showProgress)
+        self.binder.bind(object.properties.busy, self.cards.progress.setEnabled)
+        self.binder.bind(object.properties.busy, self.cards.progress.setVisible)
 
         self.binder.bind(object.properties.busy_main, self.cards.progress.setEnabled)
         self.binder.bind(object.properties.busy_main, self.cards.progress.setVisible)

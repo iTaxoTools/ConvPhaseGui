@@ -22,7 +22,8 @@ from pathlib import Path
 from time import perf_counter
 
 from itaxotools.common.utility import AttrDict
-from itaxotools.taxi_gui.tasks.common.process import get_file_info
+from itaxotools.taxi_gui.tasks.common.process import (
+    get_file_info, progress_handler)
 
 from .types import Results, ScanResults
 
@@ -30,6 +31,8 @@ from .types import Results, ScanResults
 def initialize():
     import itaxotools
     itaxotools.progress_handler('Initializing...')
+    from itaxotools.convphase import phase  # noqa
+    from itaxotools.convphase import scan  # noqa
 
 
 def scan_file(input_path: Path) -> ScanResults:
@@ -54,7 +57,10 @@ def execute(
     from sys import stderr
     from time import sleep
 
-    from itaxotools.convphase.phase import phase_mimic_format
+    from itaxotools.convphase.phase import (
+        phase_mimic_format, set_progress_callback)
+
+    set_progress_callback(lambda v, m, t: progress_handler(t, v, m))
 
     input_path = input_sequences.info.path
     output_path = work_dir / 'out'

@@ -1,5 +1,5 @@
 
-description = 'Use PHASE v2.1 to reconstruct haplotypes from population genotype data.\nInput and output is done with FASTA files via SeqPhase.'
+description = 'Use PHASE v2.1 to reconstruct haplotypes from population genotype data.\nInput and output is done with FASTA or TSV files via SeqPhase.'
 
 author_1 = 'ConvPhase by Jan-Christopher Schmidt.'
 author_2 = 'Gui by Stefanos Patmanidis.'
@@ -10,5 +10,5 @@ phase_citation_2 = '[2] Stephens, M., and Donnelly, P. (2003). A comparison of B
 seqphase_citation = '[3] Flot (2010) SeqPHASE: a web tool for interconverting PHASE input/output files and FASTA sequence alignments Molecular Ecology Resources 10 (1): 162-166.'
 citations = phase_citation_1 + '\n\n' + phase_citation_2 + '\n\n' + seqphase_citation
 
-homepage_url = 'https://github.com/iTaxoTools/ConvPhase'
+homepage_url = 'https://github.com/iTaxoTools/ConvPhaseGui'
 itaxotools_url = 'http://itaxotools.org/'
