@@ -16,13 +16,23 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+
+from itaxotools.convphase.types import PhaseWarning
 
 
-class Subtask(Enum):
-    Main = auto()
-    Initialize = auto()
-    AddSequenceFile = auto()
+@dataclass
+class Results:
+    output_path: Path
+    seconds_taken: float
+
+
+@dataclass
+class ScanResults:
+    info: tuple
+    warns: list[PhaseWarning]
 
 
 class Parameter(Enum):

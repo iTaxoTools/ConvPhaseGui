@@ -22,22 +22,17 @@ from pathlib import Path
 
 from itaxotools.common.utility import AttrDict
 from itaxotools.common.widgets import VLineSeparator
-
 from itaxotools.taxi_gui import app
-
+from itaxotools.taxi_gui.tasks.common.view import (
+    ProgressCard, SequenceSelector)
 from itaxotools.taxi_gui.utility import type_convert
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import TaskView
 from itaxotools.taxi_gui.view.widgets import (
-    GLineEdit, GSpinBox, NoWheelRadioButton, RadioButtonGroup, CategoryButton, LongLabel)
+    CategoryButton, GLineEdit, LongLabel)
 
-from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric, PairwiseScore
-from itaxotools.taxi_gui.tasks.common.model import ItemProxyModel
-from itaxotools.taxi_gui.tasks.common.view import (
-    AlignmentModeSelector, DummyResultsCard, ProgressCard, SequenceSelector)
-
-from .types import Parameter
 from . import strings
+from .types import Parameter
 
 
 class TitleCard(Card):
@@ -213,22 +208,13 @@ class ResultDialog(QtWidgets.QDialog):
         self.save.emit(self.path)
 
 
-class FastaSelector(SequenceSelector):
+class SpaceousSequenceSelector(SequenceSelector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setContentsMargins(6, 2, 6, 2)
         self.controls.label.setMinimumWidth(168)
         self.controls.fasta.parse_organism.setVisible(False)
         self.controls.browse.setText('Browse')
-
-    def set_model(self, combo, model):
-        proxy_model = ItemProxyModel()
-        proxy_model.setSourceModel(model, model.files)
-        combo.setModel(proxy_model)
-
-    def setObject(self, object):
-        super().setObject(object)
-        self.controls.config.setVisible(False)
 
 
 class ParameterCard(Card):
@@ -320,9 +306,9 @@ class View(TaskView):
             'Input and output is done with FASTA files via SeqPhase.',
             'citations here',
             self)
-        self.cards.results = ResultViewer('Phased results', self)
+        self.cards.results = ResultViewer('Phased sequences', self)
         self.cards.progress = ProgressCard(self)
-        self.cards.input_sequences = FastaSelector('Input sequences', self)
+        self.cards.input_sequences = SpaceousSequenceSelector('Input sequences', self)
         self.cards.parameters = ParameterCard(self)
 
         layout = QtWidgets.QVBoxLayout()
@@ -343,11 +329,9 @@ class View(TaskView):
 
         self.binder.bind(object.properties.busy_main, self.cards.progress.setEnabled)
         self.binder.bind(object.properties.busy_main, self.cards.progress.setVisible)
-        self.binder.bind(object.properties.busy_sequence, self.cards.input_sequences.setBusy)
+        self.binder.bind(object.subtask_sequences.properties.busy, self.cards.input_sequences.set_busy)
 
-        self.binder.bind(self.cards.input_sequences.itemChanged, object.set_sequence_file_from_file_item)
-        self.binder.bind(object.properties.input_sequences, self.cards.input_sequences.setObject)
-        self.binder.bind(self.cards.input_sequences.addInputFile, object.add_sequence_file)
+        self._bind_input_selector(self.cards.input_sequences, object.input_sequences, object.subtask_sequences)
 
         self.binder.bind(object.properties.phased_results, self.cards.results.setPath)
         self.binder.bind(object.properties.phased_results, self.cards.results.setVisible, lambda x: x is not None)
@@ -363,6 +347,13 @@ class View(TaskView):
             self.binder.bind(property, entry.setText, lambda x: type_convert(x, str, ''))
 
         self.binder.bind(object.properties.editable, self.setEditable)
+
+    def _bind_input_selector(self, card, object, subtask):
+        self.binder.bind(card.addInputFile, subtask.start)
+        self.binder.bind(card.indexChanged, object.set_index)
+        self.binder.bind(object.properties.model, card.set_model)
+        self.binder.bind(object.properties.index, card.set_index)
+        self.binder.bind(object.properties.object, card.bind_object)
 
     def requestConfirmation(self, warns, callback):
         msgBox = QtWidgets.QMessageBox(self.window())
@@ -396,7 +387,7 @@ class View(TaskView):
         self.window().msgShow(dialog)
 
     def save_results(self):
-        path = self.getSavePath('Save phased results', str(self.object.suggested_results))
+        path = self.getSavePath('Save phased sequences', str(self.object.suggested_results))
         if path:
             self.object.save(path)
 

@@ -18,28 +18,13 @@
 
 from __future__ import annotations
 
-from time import perf_counter
-from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 
 from itaxotools.common.utility import AttrDict
+from itaxotools.taxi_gui.tasks.common.process import get_file_info
 
-from itaxotools.taxi_gui.tasks.common.process import progress_handler, get_file_info
-from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric
-
-from itaxotools.convphase.types import PhaseWarning
-
-
-@dataclass
-class ScanResults:
-    info: tuple
-    warns: list[PhaseWarning]
-
-
-@dataclass
-class Results:
-    output_path: Path
-    seconds_taken: float
+from .types import Results, ScanResults
 
 
 def initialize():
@@ -47,7 +32,7 @@ def initialize():
     itaxotools.progress_handler('Initializing...')
 
 
-def scan(input_path: Path) -> list[PhaseWarning]:
+def scan_file(input_path: Path) -> ScanResults:
 
     from itaxotools.convphase.scan import scan_path
 
@@ -60,16 +45,18 @@ def scan(input_path: Path) -> list[PhaseWarning]:
 def execute(
 
     work_dir: Path,
-    input_path: Path,
+    input_sequences: AttrDict,
 
     **kwargs
 
 ) -> tuple[Path, float]:
 
-    from itaxotools.convphase.phase import phase_mimic_format
-    from time import sleep
     from sys import stderr
+    from time import sleep
 
+    from itaxotools.convphase.phase import phase_mimic_format
+
+    input_path = input_sequences.info.path
     output_path = work_dir / 'out'
 
     print(file=stderr)

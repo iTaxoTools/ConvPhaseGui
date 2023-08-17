@@ -22,21 +22,17 @@ from datetime import datetime
 from pathlib import Path
 from shutil import copyfile
 
-from itaxotools.common.bindings import Binder, EnumObject, Instance, Property
-
-from itaxotools.taxi_gui import app
-from itaxotools.taxi_gui.model.common import ItemModel
-from itaxotools.taxi_gui.model.input_file import InputFileModel
-from itaxotools.taxi_gui.model.partition import PartitionModel
+from itaxotools.common.bindings import EnumObject, Instance, Property
 from itaxotools.taxi_gui.model.sequence import SequenceModel
-from itaxotools.taxi_gui.model.tasks import TaskModel
-from itaxotools.taxi_gui.types import InputFile, Notification
+from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
+from itaxotools.taxi_gui.tasks.common.model import ImportedInputModel
+from itaxotools.taxi_gui.threading import ReportDone
+from itaxotools.taxi_gui.types import FileInfo, Notification
 from itaxotools.taxi_gui.utility import human_readable_seconds
 
-from itaxotools.taxi_gui.tasks.common.types import AlignmentMode, DistanceMetric, PairwiseScore
-
 from . import process
-from .types import Subtask, Parameter
+from .process import scan_file
+from .types import Parameter, ScanResults
 
 
 def get_effective(property):
@@ -49,12 +45,25 @@ class Parameters(EnumObject):
     enum = Parameter
 
 
+class FileScanSubtaskModel(SubtaskModel):
+    task_name = 'FileScanSubtask'
+
+    done = QtCore.Signal(FileInfo)
+
+    def start(self, path: Path):
+        super().start(scan_file, path)
+
+    def onDone(self, report: ReportDone):
+        self.done.emit(report.result)
+        self.busy = False
+
+
 class Model(TaskModel):
     task_name = 'ConvPhase'
 
     request_confirmation = QtCore.Signal(object, object)
 
-    input_sequences = Property(SequenceModel, None)
+    input_sequences = Property(ImportedInputModel, ImportedInputModel(SequenceModel))
     parameters = Property(Parameters, Instance)
 
     busy_main = Property(bool, False)
@@ -65,27 +74,25 @@ class Model(TaskModel):
 
     def __init__(self, name=None):
         super().__init__(name)
-        self.exec(Subtask.Initialize, process.initialize)
         self.can_open = True
         self.can_save = True
 
-    def readyTriggers(self):
-        return [
-            self.properties.input_sequences,
-        ]
+        self.subtask_init = SubtaskModel(self, bind_busy=False)
+        self.subtask_init.start(process.initialize)
+
+        self.subtask_sequences = FileScanSubtaskModel(self)
+        self.binder.bind(self.subtask_sequences.done, self.onDoneInfoSequences)
+
+        self.binder.bind(self.input_sequences.updated, self.checkReady)
+        self.checkReady()
 
     def isReady(self):
-        if self.input_sequences is None:
-            return False
-        if not isinstance(self.input_sequences, SequenceModel):
-            return False
-        if not self.input_sequences.file_item:
+        if not self.input_sequences.is_valid():
             return False
         return True
 
     def start(self):
         super().start()
-        self.busy_main = True
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         work_dir = self.temporary_path / timestamp
         work_dir.mkdir()
@@ -93,65 +100,39 @@ class Model(TaskModel):
         params = self.parameters.properties
 
         self.exec(
-            Subtask.Main,
             process.execute,
-
             work_dir=work_dir,
-            input_path=self.input_sequences.file_item.object.path,
+
+            input_sequences=self.input_sequences.as_dict(),
 
             number_of_iterations=get_effective(params.number_of_iterations),
             thinning_interval=get_effective(params.thinning_interval),
             burn_in=get_effective(params.burn_in),
             phase_threshold=get_effective(params.phase_threshold),
             allele_threshold=get_effective(params.allele_threshold),
-
         )
 
-    def add_sequence_file(self, path):
-        self.busy = True
-        self.busy_sequence = True
-        self.exec(Subtask.AddSequenceFile, process.scan, path)
-
-    def add_file_item_from_info(self, info):
-        index = app.model.items.add_file(
-            InputFileModel(info.path, info.size),
-            focus=False)
-        return index.data(ItemModel.ItemRole)
-
-    def get_model_from_file_item(self, file_item, model_parent, *args, **kwargs):
-        if file_item is None:
-            return None
-        return SequenceModel(file_item)
-
-    def set_sequence_file_from_file_item(self, file_item):
-        self.input_sequences = self.get_model_from_file_item(file_item, SequenceModel)
-
-    def add_sequence_file_from_info(self, info):
-        file_item = self.add_file_item_from_info(info)
-        self.set_sequence_file_from_file_item(file_item)
-
     def onDone(self, report):
-        if report.id == Subtask.Initialize:
-            return
-        if report.id == Subtask.Main:
-            time_taken = human_readable_seconds(report.result.seconds_taken)
-            self.notification.emit(Notification.Info(f'{self.name} completed successfully!\nTime taken: {time_taken}.'))
-            self.phased_results = report.result.output_path
-            self.phased_time = report.result.seconds_taken
-            self.busy_main = False
-            self.done = True
-        if report.id == Subtask.AddSequenceFile:
-            info = report.result.info
-            warns = report.result.warns
-            if not warns:
-                self.add_sequence_file_from_info(info)
-            else:
-                self.request_confirmation.emit(
-                    warns,
-                    lambda: self.add_sequence_file_from_info(info)
-                )
-            self.busy_sequence = False
+        time_taken = human_readable_seconds(report.result.seconds_taken)
+        self.notification.emit(Notification.Info(f'{self.name} completed successfully!\nTime taken: {time_taken}.'))
+        self.phased_results = report.result.output_path
+        self.phased_time = report.result.seconds_taken
+        self.busy_main = False
         self.busy = False
+        self.done = True
+
+    def onDoneInfoSequences(self, result: ScanResults):
+        info = result.info
+        warns = result.warns
+
+        if not warns:
+            self.input_sequences.add_info(info)
+        else:
+            self.request_confirmation.emit(
+                warns,
+                lambda: self.input_sequences.add_info(info)
+            )
+        self.busy_sequence = False
 
     def onStop(self, report):
         super().onStop(report)
@@ -175,7 +156,7 @@ class Model(TaskModel):
 
     def open(self, path):
         self.clear()
-        self.add_sequence_file(path)
+        self.subtask_sequences.start(path)
 
     def save(self, destination: Path):
         copyfile(self.phased_results, destination)
@@ -183,5 +164,5 @@ class Model(TaskModel):
 
     @property
     def suggested_results(self):
-        path = self.input_sequences.file_item.object.info.path
+        path = self.input_sequences.object.info.path
         return path.parent / f'{path.stem}.phased.fasta'
