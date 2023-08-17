@@ -164,5 +164,7 @@ class Model(TaskModel):
 
     @property
     def suggested_results(self):
-        path = self.input_sequences.object.info.path
-        return path.parent / f'{path.stem}.phased.fasta'
+        info = self.input_sequences.object.info
+        path = info.path
+        extension = info.format.extension
+        return path.parent / f'{path.stem}.phased{extension}'
