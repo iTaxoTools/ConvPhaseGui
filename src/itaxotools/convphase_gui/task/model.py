@@ -23,7 +23,6 @@ from pathlib import Path
 from shutil import copyfile
 
 from itaxotools.common.bindings import EnumObject, Instance, Property
-from itaxotools.taxi_gui.model.sequence import SequenceModel
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
 from itaxotools.taxi_gui.tasks.common.model import ImportedInputModel
 from itaxotools.taxi_gui.threading import ReportDone
@@ -33,6 +32,7 @@ from itaxotools.taxi_gui.utility import human_readable_seconds
 from . import process
 from .process import scan_file
 from .types import Parameter, ScanResults
+from .input import InputModel
 
 
 def get_effective(property):
@@ -63,7 +63,7 @@ class Model(TaskModel):
 
     request_confirmation = QtCore.Signal(object, object)
 
-    input_sequences = Property(ImportedInputModel, ImportedInputModel(SequenceModel))
+    input_sequences = Property(ImportedInputModel, ImportedInputModel(InputModel))
     parameters = Property(Parameters, Instance)
 
     busy_main = Property(bool, False)

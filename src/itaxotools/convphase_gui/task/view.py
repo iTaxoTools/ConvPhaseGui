@@ -25,14 +25,15 @@ from itaxotools.common.bindings import Binder
 from itaxotools.common.widgets import VLineSeparator
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.tasks.common.view import (
-    ProgressCard, SequenceSelector)
+    ProgressCard, InputSelector)
 from itaxotools.taxi_gui.utility import type_convert
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import TaskView
+from itaxotools.taxi_gui.types import ColumnFilter, FileFormat
 from itaxotools.taxi_gui.view.widgets import (
-    CategoryButton, GLineEdit, LongLabel)
-from itaxotools.taxi_gui.view.widgets import RadioButtonGroup
+    CategoryButton, GLineEdit, LongLabel, RadioButtonGroup, NoWheelComboBox, MinimumStackedWidget)
 from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
+from itaxotools.taxi_gui.utility import human_readable_size
 
 from . import strings
 from .types import Parameter, OutputFormat
@@ -211,13 +212,167 @@ class ResultDialog(QtWidgets.QDialog):
         self.save.emit(self.path)
 
 
-class SpaceousSequenceSelector(SequenceSelector):
+class InputSequencesSelector(InputSelector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setContentsMargins(6, 2, 6, 2)
         self.controls.label.setMinimumWidth(168)
-        self.controls.fasta.parse_organism.setVisible(False)
         self.controls.browse.setText('Browse')
+
+    def draw_config(self):
+        self.controls.config = MinimumStackedWidget()
+        self.addWidget(self.controls.config)
+        self.draw_config_tabfile()
+        self.draw_config_fasta()
+
+    def draw_config_tabfile(self):
+        layout = QtWidgets.QGridLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        column = 0
+
+        type_label = QtWidgets.QLabel('File format:')
+        size_label = QtWidgets.QLabel('File size:')
+
+        layout.addWidget(type_label, 0, column)
+        layout.addWidget(size_label, 1, column)
+        layout.setColumnMinimumWidth(column, 70)
+        column += 1
+
+        layout.setColumnMinimumWidth(column, 8)
+        column += 1
+
+        type_label_value = QtWidgets.QLabel('Tabfile')
+        size_label_value = QtWidgets.QLabel('42 MB')
+
+        layout.addWidget(type_label_value, 0, column)
+        layout.addWidget(size_label_value, 1, column)
+        layout.setColumnMinimumWidth(column, 60)
+        column += 1
+
+        layout.setColumnMinimumWidth(column, 32)
+        column += 1
+
+        index_label = QtWidgets.QLabel('Indices:')
+        sequence_label = QtWidgets.QLabel('Sequences:')
+        subset_label = QtWidgets.QLabel('Subset:')
+
+        layout.addWidget(index_label, 0, column)
+        layout.addWidget(sequence_label, 1, column)
+        layout.addWidget(subset_label, 2, column)
+        column += 1
+
+        layout.setColumnMinimumWidth(column, 8)
+        column += 1
+
+        index_combo = NoWheelComboBox()
+        sequence_combo = NoWheelComboBox()
+        subset_combo = NoWheelComboBox()
+
+        layout.addWidget(index_combo, 0, column)
+        layout.addWidget(sequence_combo, 1, column)
+        layout.addWidget(subset_combo, 2, column)
+        layout.setColumnStretch(column, 1)
+        column += 1
+
+        layout.setColumnMinimumWidth(column, 16)
+        column += 1
+
+        view = QtWidgets.QPushButton('View')
+        view.setVisible(False)
+
+        layout.addWidget(view, 0, column)
+        layout.setColumnMinimumWidth(column, 80)
+        column += 1
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+
+        self.controls.tabfile = AttrDict()
+        self.controls.tabfile.widget = widget
+        self.controls.tabfile.index_combo = index_combo
+        self.controls.tabfile.sequence_combo = sequence_combo
+        self.controls.tabfile.subset_combo = subset_combo
+        self.controls.tabfile.file_size = size_label_value
+        self.controls.config.addWidget(widget)
+
+    def draw_config_fasta(self):
+        type_label = QtWidgets.QLabel('File format:')
+        size_label = QtWidgets.QLabel('File size:')
+
+        type_label_value = QtWidgets.QLabel('Fasta')
+        size_label_value = QtWidgets.QLabel('42 MB')
+
+        parse_organism = QtWidgets.QCheckBox('Parse identifiers as "individual|taxon"')
+
+        view = QtWidgets.QPushButton('View')
+        view.setVisible(False)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addWidget(type_label)
+        layout.addWidget(type_label_value)
+        layout.addSpacing(48)
+        layout.addWidget(size_label)
+        layout.addWidget(size_label_value)
+        layout.addSpacing(48)
+        layout.addWidget(parse_organism)
+        layout.addStretch(1)
+        layout.addWidget(view)
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+
+        self.controls.fasta = AttrDict()
+        self.controls.fasta.widget = widget
+        self.controls.fasta.file_size = size_label_value
+        self.controls.fasta.parse_organism = parse_organism
+        self.controls.config.addWidget(widget)
+
+    def bind_object(self, object):
+        self.binder.unbind_all()
+        format = object.info.format if object else None
+        {
+            FileFormat.Tabfile: self._bind_tabfile,
+            FileFormat.Fasta: self._bind_fasta,
+            None: self._bind_none,
+        }[format](object)
+        self.update()
+
+    def _bind_tabfile(self, object):
+        self._populate_headers(object.info.headers)
+        self.binder.bind(object.properties.index_column, self.controls.tabfile.index_combo.setCurrentIndex)
+        self.binder.bind(self.controls.tabfile.index_combo.currentIndexChanged, object.properties.index_column)
+        self.binder.bind(object.properties.sequence_column, self.controls.tabfile.sequence_combo.setCurrentIndex)
+        self.binder.bind(self.controls.tabfile.sequence_combo.currentIndexChanged, object.properties.sequence_column)
+        self.binder.bind(object.properties.subset_column, self.controls.tabfile.subset_combo.setCurrentIndex, lambda index: index + 1)
+        self.binder.bind(self.controls.tabfile.subset_combo.currentIndexChanged, object.properties.subset_column, lambda index: index - 1)
+        self.binder.bind(object.properties.info, self.controls.tabfile.file_size.setText, lambda info: human_readable_size(info.size))
+        self.controls.config.setCurrentWidget(self.controls.tabfile.widget)
+        self.controls.config.setVisible(True)
+
+    def _bind_fasta(self, object):
+        self.binder.bind(object.properties.has_subsets, self.controls.fasta.parse_organism.setVisible)
+        self.binder.bind(object.properties.parse_organism, self.controls.fasta.parse_organism.setChecked)
+        self.binder.bind(self.controls.fasta.parse_organism.toggled, object.properties.parse_organism)
+        self.binder.bind(object.properties.subset_separator, self.controls.fasta.parse_organism.setText, lambda x: f'Parse identifiers as "individual{x}taxon"')
+        self.binder.bind(object.properties.info, self.controls.fasta.file_size.setText, lambda info: human_readable_size(info.size))
+        self.controls.config.setCurrentWidget(self.controls.fasta.widget)
+        self.controls.config.setVisible(True)
+
+    def _bind_none(self, object):
+        self.controls.config.setVisible(False)
+
+    def _populate_headers(self, headers):
+        self.controls.tabfile.index_combo.clear()
+        self.controls.tabfile.sequence_combo.clear()
+        self.controls.tabfile.subset_combo.clear()
+        self.controls.tabfile.subset_combo.addItem('---', None)
+        for header in headers:
+            self.controls.tabfile.index_combo.addItem(header)
+            self.controls.tabfile.sequence_combo.addItem(header)
+            self.controls.tabfile.subset_combo.addItem(header, header)
 
 
 class OutputFormatCard(Card):
@@ -287,7 +442,7 @@ class OutputFormatCard(Card):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(radio_widget)
         layout.addWidget(check_concatenate_extras)
-        layout.setSpacing(8)
+        layout.setSpacing(10)
 
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
@@ -300,7 +455,6 @@ class OutputFormatCard(Card):
         self.addWidget(widget)
 
     def handleFormatChanged(self, format):
-        print('bob', format)
         self.controls.fasta.roll.setAnimatedVisible(format == OutputFormat.Fasta)
 
 
@@ -395,7 +549,7 @@ class View(TaskView):
             self)
         self.cards.results = ResultViewer('Phased sequences', self)
         self.cards.progress = ProgressCard(self)
-        self.cards.input_sequences = SpaceousSequenceSelector('Input sequences', self)
+        self.cards.input_sequences = InputSequencesSelector('Input sequences', self)
         self.cards.output_format = OutputFormatCard(self)
         self.cards.parameters = ParameterCard(self)
 
@@ -469,6 +623,7 @@ class View(TaskView):
         self.cards.results.setEnabled(True)
         self.cards.progress.setEnabled(True)
         self.cards.input_sequences.setEnabled(editable)
+        self.cards.output_format.setEnabled(editable)
         self.cards.parameters.setContentsEnabled(editable)
 
     def view_results(self, text, path):
