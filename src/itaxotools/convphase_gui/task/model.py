@@ -45,7 +45,7 @@ class Parameters(EnumObject):
     enum = Parameter
 
 
-class FileScanSubtaskModel(SubtaskModel):
+class SequenceScanSubtaskModel(SubtaskModel):
     task_name = 'FileScanSubtask'
 
     done = QtCore.Signal(FileInfo)
@@ -80,8 +80,8 @@ class Model(TaskModel):
         self.subtask_init = SubtaskModel(self, bind_busy=False)
         self.subtask_init.start(process.initialize)
 
-        self.subtask_sequences = FileScanSubtaskModel(self)
-        self.binder.bind(self.subtask_sequences.done, self.onDoneInfoSequences)
+        self.subtask_sequences = SequenceScanSubtaskModel(self)
+        self.binder.bind(self.subtask_sequences.done, self.onDoneScanSequences)
 
         self.binder.bind(self.input_sequences.updated, self.checkReady)
         self.checkReady()
@@ -121,7 +121,7 @@ class Model(TaskModel):
         self.busy = False
         self.done = True
 
-    def onDoneInfoSequences(self, result: ScanResults):
+    def onDoneScanSequences(self, result: ScanResults):
         info = result.info
         warns = result.warns
 

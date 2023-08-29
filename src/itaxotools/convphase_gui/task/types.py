@@ -17,7 +17,7 @@
 # -----------------------------------------------------------------------------
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 
 from itaxotools.convphase.types import PhaseWarning
@@ -51,3 +51,9 @@ class Parameter(Enum):
 
     def __repr__(self):
         return f'<{self.__class__.__name__}.{self._name_}>'
+
+
+class OutputFormat(Enum):
+    Tabfile = auto()
+    Fasta = auto()
+    Mimic = auto()

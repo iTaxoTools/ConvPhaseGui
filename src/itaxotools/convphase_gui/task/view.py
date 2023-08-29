@@ -21,6 +21,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from pathlib import Path
 
 from itaxotools.common.utility import AttrDict
+from itaxotools.common.bindings import Binder
 from itaxotools.common.widgets import VLineSeparator
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.tasks.common.view import (
@@ -30,9 +31,11 @@ from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import TaskView
 from itaxotools.taxi_gui.view.widgets import (
     CategoryButton, GLineEdit, LongLabel)
+from itaxotools.taxi_gui.view.widgets import RadioButtonGroup
+from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
 
 from . import strings
-from .types import Parameter
+from .types import Parameter, OutputFormat
 
 
 class TitleCard(Card):
@@ -217,6 +220,90 @@ class SpaceousSequenceSelector(SequenceSelector):
         self.controls.browse.setText('Browse')
 
 
+class OutputFormatCard(Card):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setContentsMargins(6, 2, 6, 2)
+        self.draw_title()
+        self.draw_fasta_config()
+
+    def draw_title(self):
+        title = QtWidgets.QLabel('Output format:')
+        title.setStyleSheet('font-size: 16px;')
+        title.setFixedWidth(160)
+
+        radio_tabfile = QtWidgets.QRadioButton('Tabfile')
+        radio_fasta = QtWidgets.QRadioButton('Fasta')
+        radio_mimic = QtWidgets.QRadioButton('Same as input')
+
+        group = RadioButtonGroup()
+        group.valueChanged.connect(self.handleFormatChanged)
+        group.add(radio_tabfile, OutputFormat.Tabfile)
+        group.add(radio_fasta, OutputFormat.Fasta)
+        group.add(radio_mimic, OutputFormat.Mimic)
+
+        radios = QtWidgets.QHBoxLayout()
+        radios.addWidget(radio_tabfile, 1)
+        radios.addWidget(radio_fasta, 1)
+        radios.addWidget(radio_mimic, 1)
+        radios.addStretch(1)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(0, 4, 0, 4)
+        layout.addWidget(title)
+        layout.addLayout(radios, 1)
+        layout.addSpacing(100)
+
+        self.controls.format = group
+
+        self.addLayout(layout)
+
+    def draw_fasta_config(self):
+
+        radio_label = QtWidgets.QLabel('Subset separator:')
+        radio_label.setFixedWidth(178)
+
+        radio_pipe = QtWidgets.QRadioButton('Pipe: individual|subset')
+        radio_period = QtWidgets.QRadioButton('Period: individual.subset')
+
+        group = RadioButtonGroup()
+        group.add(radio_pipe, '|')
+        group.add(radio_period, '.')
+
+        radios = QtWidgets.QHBoxLayout()
+        radios.setContentsMargins(0, 0, 0, 0)
+        radios.addWidget(radio_label)
+        radios.addWidget(radio_pipe, 1)
+        radios.addWidget(radio_period, 1)
+        radios.addStretch(0.66)
+        radios.addSpacing(60)
+
+        radio_widget = QtWidgets.QWidget()
+        radio_widget.setLayout(radios)
+
+        check_concatenate_extras = QtWidgets.QCheckBox('  Concatenate all extra fields into fasta identifier')
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(radio_widget)
+        layout.addWidget(check_concatenate_extras)
+        layout.setSpacing(8)
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+        widget.roll = VerticalRollAnimation(widget)
+
+        self.controls.separator = group
+        self.controls.concatenate = check_concatenate_extras
+        self.controls.fasta = widget
+
+        self.addWidget(widget)
+
+    def handleFormatChanged(self, format):
+        print('bob', format)
+        self.controls.fasta.roll.setAnimatedVisible(format == OutputFormat.Fasta)
+
+
 class ParameterCard(Card):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -309,6 +396,7 @@ class View(TaskView):
         self.cards.results = ResultViewer('Phased sequences', self)
         self.cards.progress = ProgressCard(self)
         self.cards.input_sequences = SpaceousSequenceSelector('Input sequences', self)
+        self.cards.output_format = OutputFormatCard(self)
         self.cards.parameters = ParameterCard(self)
 
         layout = QtWidgets.QVBoxLayout()
