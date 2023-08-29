@@ -18,15 +18,12 @@
 
 from __future__ import annotations
 
-from PySide6 import QtCore
-
 from typing import Generic, TypeVar
 
+from itaxotools.common.bindings import Binder
 from itaxotools.common.utility import AttrDict, DecoratorDict
-
-from itaxotools.taxi_gui.types import ColumnFilter, FileFormat, FileInfo
-from itaxotools.taxi_gui.model.common import Object, Property, TreeItem
-from itaxotools.taxi_gui.model.input_file import InputFileModel
+from itaxotools.taxi_gui.model.common import Object, Property
+from itaxotools.taxi_gui.types import FileInfo
 
 FileInfoType = TypeVar('FileInfoType', bound=FileInfo)
 
@@ -35,6 +32,8 @@ models = DecoratorDict[FileInfo, Object]()
 
 class InputModel(Object, Generic[FileInfoType]):
     info = Property(FileInfo, None)
+    has_subsets = Property(bool, False)
+    has_extras = Property(bool, False)
 
     def __init__(self, info: FileInfo):
         super().__init__()
@@ -59,15 +58,19 @@ class InputModel(Object, Generic[FileInfoType]):
 
 @models(FileInfo.Fasta)
 class Fasta(InputModel):
-    has_subsets = Property(bool, False)
+    file_has_subsets = Property(bool, False)
     parse_organism = Property(bool, False)
     subset_separator = Property(str, '|')
 
     def __init__(self, info: FileInfo.Fasta):
         super().__init__(info)
-        self.has_subsets = info.has_subsets
+        self.file_has_subsets = info.has_subsets
         self.parse_organism = info.has_subsets
         self.subset_separator = info.subset_separator
+        self.has_extras = False
+
+        self.binder = Binder()
+        self.binder.bind(self.properties.parse_organism, self.properties.has_subsets)
 
 
 @models(FileInfo.Tabfile)
@@ -84,6 +87,12 @@ class Tabfile(InputModel):
         genera_column = self._header_get(info.headers, 'genera')
         self.subset_column = species_column if species_column >= 0 else genera_column
 
+        self.binder = Binder()
+        self.binder.bind(self.properties.subset_column, self.properties.has_subsets, lambda column: column >= 0)
+        self.binder.bind(self.properties.index_column, self.update_has_extras)
+        self.binder.bind(self.properties.sequence_column, self.update_has_extras)
+        self.binder.bind(self.properties.subset_column, self.update_has_extras)
+
     @staticmethod
     def _header_get(headers: list[str], field: str):
         try:
@@ -99,3 +108,10 @@ class Tabfile(InputModel):
         if len(set([self.index_column, self.sequence_column, self.subset_column])) < 3:
             return False
         return True
+
+    def update_has_extras(self):
+        columns = set(range(len(self.info.headers)))
+        for column in [self.index_column, self.sequence_column, self.subset_column]:
+            if column >= 0 and column in columns:
+                columns.remove(column)
+        self.has_extras = bool(columns)

@@ -21,22 +21,20 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from pathlib import Path
 
 from itaxotools.common.utility import AttrDict
-from itaxotools.common.bindings import Binder
 from itaxotools.common.widgets import VLineSeparator
 from itaxotools.taxi_gui import app
-from itaxotools.taxi_gui.tasks.common.view import (
-    ProgressCard, InputSelector)
-from itaxotools.taxi_gui.utility import type_convert
+from itaxotools.taxi_gui.tasks.common.view import InputSelector, ProgressCard
+from itaxotools.taxi_gui.types import FileFormat
+from itaxotools.taxi_gui.utility import human_readable_size, type_convert
+from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import TaskView
-from itaxotools.taxi_gui.types import ColumnFilter, FileFormat
 from itaxotools.taxi_gui.view.widgets import (
-    CategoryButton, GLineEdit, LongLabel, RadioButtonGroup, NoWheelComboBox, MinimumStackedWidget)
-from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
-from itaxotools.taxi_gui.utility import human_readable_size
+    CategoryButton, GLineEdit, LongLabel, MinimumStackedWidget,
+    NoWheelComboBox, RadioButtonGroup)
 
 from . import strings
-from .types import Parameter, OutputFormat
+from .types import OutputFormat, Parameter
 
 
 class TitleCard(Card):
@@ -353,7 +351,7 @@ class InputSequencesSelector(InputSelector):
         self.controls.config.setVisible(True)
 
     def _bind_fasta(self, object):
-        self.binder.bind(object.properties.has_subsets, self.controls.fasta.parse_organism.setVisible)
+        self.binder.bind(object.properties.file_has_subsets, self.controls.fasta.parse_organism.setVisible)
         self.binder.bind(object.properties.parse_organism, self.controls.fasta.parse_organism.setChecked)
         self.binder.bind(self.controls.fasta.parse_organism.toggled, object.properties.parse_organism)
         self.binder.bind(object.properties.subset_separator, self.controls.fasta.parse_organism.setText, lambda x: f'Parse identifiers as "individual{x}taxon"')
@@ -392,7 +390,6 @@ class OutputFormatCard(Card):
         radio_mimic = QtWidgets.QRadioButton('Same as input')
 
         group = RadioButtonGroup()
-        group.valueChanged.connect(self.handleFormatChanged)
         group.add(radio_tabfile, OutputFormat.Tabfile)
         group.add(radio_fasta, OutputFormat.Fasta)
         group.add(radio_mimic, OutputFormat.Mimic)
@@ -435,8 +432,10 @@ class OutputFormatCard(Card):
 
         radio_widget = QtWidgets.QWidget()
         radio_widget.setLayout(radios)
+        radio_widget.roll = VerticalRollAnimation(radio_widget)
 
         check_concatenate_extras = QtWidgets.QCheckBox('  Concatenate all extra fields into fasta identifier')
+        check_concatenate_extras.roll = VerticalRollAnimation(check_concatenate_extras)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -449,13 +448,11 @@ class OutputFormatCard(Card):
         widget.roll = VerticalRollAnimation(widget)
 
         self.controls.separator = group
+        self.controls.separators = radio_widget
         self.controls.concatenate = check_concatenate_extras
         self.controls.fasta = widget
 
         self.addWidget(widget)
-
-    def handleFormatChanged(self, format):
-        self.controls.fasta.roll.setAnimatedVisible(format == OutputFormat.Fasta)
 
 
 class ParameterCard(Card):
@@ -580,6 +577,17 @@ class View(TaskView):
         self.binder.bind(object.properties.phased_results, self.cards.results.setPath)
         self.binder.bind(object.properties.phased_results, self.cards.results.setVisible, lambda x: x is not None)
         self.binder.bind(object.properties.phased_results, self.cards.parameters.setExpanded, lambda x: x is None)
+
+        self.binder.bind(object.output.properties.format, self.cards.output_format.controls.format.setValue)
+        self.binder.bind(self.cards.output_format.controls.format.valueChanged, object.output.properties.format)  # this does not propagate???
+        self.binder.bind(object.output.properties.fasta_separator, self.cards.output_format.controls.separator.setValue)
+        self.binder.bind(self.cards.output_format.controls.separator.valueChanged, object.output.properties.fasta_separator)
+        self.binder.bind(object.output.properties.fasta_concatenate, self.cards.output_format.controls.concatenate.setChecked)
+        self.binder.bind(self.cards.output_format.controls.concatenate.toggled, object.output.properties.fasta_concatenate)
+
+        self.binder.bind(object.output.properties.fasta_separator_visible, self.cards.output_format.controls.separators.roll.setAnimatedVisible)
+        self.binder.bind(object.output.properties.fasta_concatenate_visible, self.cards.output_format.controls.concatenate.roll.setAnimatedVisible)
+        self.binder.bind(object.output.properties.fasta_config_visible, self.cards.output_format.controls.fasta.roll.setAnimatedVisible)
 
         self.binder.bind(self.cards.results.view, self.view_results)
         self.binder.bind(self.cards.results.save, self.save_results)

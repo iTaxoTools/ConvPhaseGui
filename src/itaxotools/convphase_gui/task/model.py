@@ -22,17 +22,18 @@ from datetime import datetime
 from pathlib import Path
 from shutil import copyfile
 
-from itaxotools.common.bindings import EnumObject, Instance, Property
+from itaxotools.common.bindings import (
+    Binder, EnumObject, Instance, Property, PropertyObject)
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
 from itaxotools.taxi_gui.tasks.common.model import ImportedInputModel
 from itaxotools.taxi_gui.threading import ReportDone
-from itaxotools.taxi_gui.types import FileInfo, Notification
+from itaxotools.taxi_gui.types import FileFormat, FileInfo, Notification
 from itaxotools.taxi_gui.utility import human_readable_seconds
 
 from . import process
-from .process import scan_file
-from .types import Parameter, ScanResults
 from .input import InputModel
+from .process import scan_file
+from .types import OutputFormat, Parameter, ScanResults
 
 
 def get_effective(property):
@@ -58,6 +59,56 @@ class SequenceScanSubtaskModel(SubtaskModel):
         self.busy = False
 
 
+class OutputModel(PropertyObject):
+    format = Property(OutputFormat, OutputFormat.Mimic)
+
+    fasta_separator = Property(str, '|')
+    fasta_concatenate = Property(bool, False)
+
+    fasta_config_visible = Property(bool, False)
+    fasta_separator_visible = Property(bool, False)
+    fasta_concatenate_visible = Property(bool, False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.object = None
+        self.binder = Binder()
+
+        self.set_input_object(None)
+
+    def set_input_object(self, object):
+        self.binder.unbind_all()
+        self.object = object
+
+        self.binder.bind(self.properties.format, self._update_fasta_config_visible)
+
+        if object is None:
+            return
+
+        if object.info.format == FileFormat.Fasta and object.info.subset_separator in ['|', '.']:
+            self.fasta_separator = object.info.subset_separator
+
+        self.binder.bind(object.properties.has_subsets, self.properties.fasta_separator_visible)
+        self.binder.bind(object.properties.has_extras, self.properties.fasta_concatenate_visible)
+
+        self.binder.bind(object.properties.has_subsets, self._update_fasta_config_visible)
+        self.binder.bind(object.properties.has_extras, self._update_fasta_config_visible)
+
+    def _check_fasta_config_visible(self):
+        if self.format != OutputFormat.Fasta:
+            return False
+        if any((
+            self.fasta_separator_visible,
+            self.fasta_concatenate_visible,
+        )):
+            return True
+        return False
+
+    def _update_fasta_config_visible(self):
+        visible = self._check_fasta_config_visible()
+        self.fasta_config_visible = visible
+
+
 class Model(TaskModel):
     task_name = 'ConvPhase'
 
@@ -65,6 +116,8 @@ class Model(TaskModel):
 
     input_sequences = Property(ImportedInputModel, ImportedInputModel(InputModel))
     parameters = Property(Parameters, Instance)
+
+    output = Property(OutputModel, Instance)
 
     busy_main = Property(bool, False)
     busy_sequence = Property(bool, False)
@@ -82,6 +135,8 @@ class Model(TaskModel):
 
         self.subtask_sequences = SequenceScanSubtaskModel(self)
         self.binder.bind(self.subtask_sequences.done, self.onDoneScanSequences)
+
+        self.binder.bind(self.input_sequences.properties.object, self.output.set_input_object)
 
         self.binder.bind(self.input_sequences.updated, self.checkReady)
         self.checkReady()
