@@ -20,19 +20,11 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 
-from itaxotools.convphase.types import PhaseWarning
-
 
 @dataclass
 class Results:
     output_path: Path
     seconds_taken: float
-
-
-@dataclass
-class ScanResults:
-    info: tuple
-    warns: list[PhaseWarning]
 
 
 class Parameter(Enum):

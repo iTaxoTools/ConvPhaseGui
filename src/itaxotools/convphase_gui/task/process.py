@@ -19,66 +19,74 @@
 from __future__ import annotations
 
 from pathlib import Path
-from time import perf_counter
+from sys import stderr
+from time import perf_counter, sleep
 
 from itaxotools.common.utility import AttrDict
-from itaxotools.taxi_gui.tasks.common.process import (
-    get_file_info, progress_handler)
 
-from .types import Results, ScanResults
+from .types import Results
 
 
 def initialize():
     import itaxotools
     itaxotools.progress_handler('Initializing...')
-    from itaxotools.convphase import phase  # noqa
-    from itaxotools.convphase import scan  # noqa
-
-
-def scan_file(input_path: Path) -> ScanResults:
-
-    from itaxotools.convphase.scan import scan_path
-
-    warns = scan_path(input_path)
-    info = get_file_info(input_path)
-
-    return ScanResults(info, warns)
+    from . import work  # noqa
 
 
 def execute(
 
     work_dir: Path,
     input_sequences: AttrDict,
-
-    **kwargs
+    output_options: AttrDict,
+    parameters: AttrDict,
 
 ) -> tuple[Path, float]:
 
-    from sys import stderr
-    from time import sleep
+    from itaxotools import abort, get_feedback
 
-    from itaxotools.convphase.phase import (
-        phase_mimic_format, set_progress_callback)
+    from .work import (
+        configure_progress_callbacks, get_output_file_handler,
+        get_phased_sequences, get_sequence_warnings, get_sequences_from_model)
 
-    set_progress_callback(lambda v, m, t: progress_handler(t, v, m))
+    ts = perf_counter()
 
-    input_path = input_sequences.info.path
+    configure_progress_callbacks()
+
     output_path = work_dir / 'out'
 
     print(file=stderr)
     print('Running ConvPhase with parameters:', file=stderr)
-    for k, v in kwargs.items():
+    for k, v in parameters.items():
         print(f'> {k} = {v}', file=stderr)
     print(file=stderr)
 
-    # no good way to flush stdout, which results in garbled error messages
-    # just sleep for now
+    # no good way to flush stdout for both python and convphase extension,
+    # which results in garbled error messages. just sleep for now...
     sleep(0.1)
 
-    ts = perf_counter()
-    phase_mimic_format(input_path, output_path, **kwargs)
+    sequences = get_sequences_from_model(input_sequences)
+    warns = get_sequence_warnings(sequences)
+
+    tm = perf_counter()
+
+    if warns:
+        answer = get_feedback(warns)
+        if not answer:
+            abort()
+
+    tx = perf_counter()
+
+    phased_sequences = get_phased_sequences(sequences, parameters)
+
+    write_handler = get_output_file_handler(
+        output_path, output_options, input_sequences)
+
+    with write_handler as file:
+        for sequence in phased_sequences:
+            file.write(sequence)
+
     tf = perf_counter()
 
     print('Phasing completed successfully!', file=stderr)
 
-    return Results(output_path, tf - ts)
+    return Results(output_path, tm - ts + tf - tx)

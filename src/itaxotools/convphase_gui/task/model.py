@@ -24,39 +24,30 @@ from shutil import copyfile
 
 from itaxotools.common.bindings import (
     Binder, EnumObject, Instance, Property, PropertyObject)
+from itaxotools.common.utility import AttrDict
+from itaxotools.taxi_gui.loop import DataQuery
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
-from itaxotools.taxi_gui.tasks.common.model import ImportedInputModel
-from itaxotools.taxi_gui.threading import ReportDone
-from itaxotools.taxi_gui.types import FileFormat, FileInfo, Notification
+from itaxotools.taxi_gui.tasks.common.model import (
+    FileInfoSubtaskModel, ImportedInputModel)
+from itaxotools.taxi_gui.types import FileFormat, Notification
 from itaxotools.taxi_gui.utility import human_readable_seconds
 
 from . import process
 from .input import InputModel
-from .process import scan_file
-from .types import OutputFormat, Parameter, ScanResults
-
-
-def get_effective(property):
-    if property.value is None:
-        return property.default
-    return property.value
+from .types import OutputFormat, Parameter
 
 
 class Parameters(EnumObject):
     enum = Parameter
 
+    def as_dict(self):
+        return AttrDict({p.key: self._get_effective(p) for p in self.properties})
 
-class SequenceScanSubtaskModel(SubtaskModel):
-    task_name = 'FileScanSubtask'
-
-    done = QtCore.Signal(FileInfo)
-
-    def start(self, path: Path):
-        super().start(scan_file, path)
-
-    def onDone(self, report: ReportDone):
-        self.done.emit(report.result)
-        self.busy = False
+    @staticmethod
+    def _get_effective(property):
+        if property.value is None:
+            return property.default
+        return property.value
 
 
 class OutputModel(PropertyObject):
@@ -108,11 +99,14 @@ class OutputModel(PropertyObject):
         visible = self._check_fasta_config_visible()
         self.fasta_config_visible = visible
 
+    def as_dict(self):
+        return AttrDict({p.key: p.value for p in self.properties})
+
 
 class Model(TaskModel):
     task_name = 'ConvPhase'
 
-    request_confirmation = QtCore.Signal(object, object)
+    request_confirmation = QtCore.Signal(object, object, object)
 
     input_sequences = Property(ImportedInputModel, ImportedInputModel(InputModel))
     parameters = Property(Parameters, Instance)
@@ -131,15 +125,19 @@ class Model(TaskModel):
         self.can_save = True
 
         self.subtask_init = SubtaskModel(self, bind_busy=False)
-        self.subtask_init.start(process.initialize)
 
-        self.subtask_sequences = SequenceScanSubtaskModel(self)
-        self.binder.bind(self.subtask_sequences.done, self.onDoneScanSequences)
+        self.subtask_sequences = FileInfoSubtaskModel(self)
+        self.binder.bind(self.subtask_sequences.done, self.input_sequences.add_info)
 
         self.binder.bind(self.input_sequences.properties.object, self.output.set_input_object)
+        self.binder.bind(self.input_sequences.notification, self.notification)
+
+        self.binder.bind(self.query, self.on_query)
 
         self.binder.bind(self.input_sequences.updated, self.checkReady)
         self.checkReady()
+
+        self.subtask_init.start(process.initialize)
 
     def isReady(self):
         if not self.input_sequences.is_valid():
@@ -152,20 +150,25 @@ class Model(TaskModel):
         work_dir = self.temporary_path / timestamp
         work_dir.mkdir()
 
-        params = self.parameters.properties
-
         self.exec(
             process.execute,
             work_dir=work_dir,
 
             input_sequences=self.input_sequences.as_dict(),
-
-            number_of_iterations=get_effective(params.number_of_iterations),
-            thinning_interval=get_effective(params.thinning_interval),
-            burn_in=get_effective(params.burn_in),
-            phase_threshold=get_effective(params.phase_threshold),
-            allele_threshold=get_effective(params.allele_threshold),
+            output_options=self.output.as_dict(),
+            parameters=self.parameters.as_dict(),
         )
+
+    def on_query(self, query: DataQuery):
+        warns = query.data
+        if not warns:
+            self.answer(True)
+        else:
+            self.request_confirmation.emit(
+                warns,
+                lambda: self.answer(True),
+                lambda: self.answer(False),
+            )
 
     def onDone(self, report):
         time_taken = human_readable_seconds(report.result.seconds_taken)
@@ -175,19 +178,6 @@ class Model(TaskModel):
         self.busy_main = False
         self.busy = False
         self.done = True
-
-    def onDoneScanSequences(self, result: ScanResults):
-        info = result.info
-        warns = result.warns
-
-        if not warns:
-            self.input_sequences.add_info(info)
-        else:
-            self.request_confirmation.emit(
-                warns,
-                lambda: self.input_sequences.add_info(info)
-            )
-        self.busy_sequence = False
 
     def onStop(self, report):
         super().onStop(report)

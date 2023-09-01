@@ -579,7 +579,7 @@ class View(TaskView):
         self.binder.bind(object.properties.phased_results, self.cards.parameters.setExpanded, lambda x: x is None)
 
         self.binder.bind(object.output.properties.format, self.cards.output_format.controls.format.setValue)
-        self.binder.bind(self.cards.output_format.controls.format.valueChanged, object.output.properties.format)  # this does not propagate???
+        self.binder.bind(self.cards.output_format.controls.format.valueChanged, object.output.properties.format)
         self.binder.bind(object.output.properties.fasta_separator, self.cards.output_format.controls.separator.setValue)
         self.binder.bind(self.cards.output_format.controls.separator.valueChanged, object.output.properties.fasta_separator)
         self.binder.bind(object.output.properties.fasta_concatenate, self.cards.output_format.controls.concatenate.setChecked)
@@ -607,7 +607,7 @@ class View(TaskView):
         self.binder.bind(object.properties.index, card.set_index)
         self.binder.bind(object.properties.object, card.bind_object)
 
-    def requestConfirmation(self, warns, callback):
+    def requestConfirmation(self, warns, callback, abort):
         msgBox = QtWidgets.QMessageBox(self.window())
         msgBox.setWindowTitle(f'{app.config.title} - Warning')
         msgBox.setIcon(QtWidgets.QMessageBox.Warning)
@@ -618,13 +618,15 @@ class View(TaskView):
             'Problems detected with input file: \n\n' +
             '\n'.join('- ' + str(warn) for warn in warns) + '\n\n'
             'The program may crash or produce false results. \n'
-            'Open file anyway?'
+            'Proceed anyway?'
         )
         msgBox.setText(text)
 
         result = self.window().msgShow(msgBox)
         if result == QtWidgets.QMessageBox.Ok:
             callback()
+        else:
+            abort()
 
     def setEditable(self, editable: bool):
         self.cards.title.setEnabled(True)
