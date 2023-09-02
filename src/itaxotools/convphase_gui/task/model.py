@@ -111,7 +111,7 @@ class Model(TaskModel):
     input_sequences = Property(ImportedInputModel, ImportedInputModel(InputModel))
     parameters = Property(Parameters, Instance)
 
-    output = Property(OutputOptionsModel, Instance)
+    output_options = Property(OutputOptionsModel, Instance)
 
     busy_main = Property(bool, False)
     busy_sequence = Property(bool, False)
@@ -129,7 +129,7 @@ class Model(TaskModel):
         self.subtask_sequences = FileInfoSubtaskModel(self)
         self.binder.bind(self.subtask_sequences.done, self.input_sequences.add_info)
 
-        self.binder.bind(self.input_sequences.properties.object, self.output.set_input_object)
+        self.binder.bind(self.input_sequences.properties.object, self.output_options.set_input_object)
         self.binder.bind(self.input_sequences.notification, self.notification)
 
         self.binder.bind(self.query, self.on_query)
@@ -155,7 +155,7 @@ class Model(TaskModel):
             work_dir=work_dir,
 
             input_sequences=self.input_sequences.as_dict(),
-            output_options=self.output.as_dict(),
+            output_options=self.output_options.as_dict(),
             parameters=self.parameters.as_dict(),
         )
 
@@ -207,9 +207,17 @@ class Model(TaskModel):
         copyfile(self.phased_results, destination)
         self.notification.emit(Notification.Info('Saved file successfully!'))
 
+    def get_output_format(self):
+        match self.output_options.format:
+            case OutputFormat.Mimic:
+                return self.input_sequences.object.info.format
+            case OutputFormat.Fasta:
+                return FileFormat.Fasta
+            case OutputFormat.Tabfile:
+                return FileFormat.Tabfile
+
     @property
     def suggested_results(self):
-        info = self.input_sequences.object.info
-        path = info.path
-        extension = info.format.extension
-        return path.parent / f'{path.stem}.phased{extension}'
+        format = self.get_output_format()
+        path = self.input_sequences.object.info.path
+        return path.parent / f'{path.stem}.phased{format.extension}'

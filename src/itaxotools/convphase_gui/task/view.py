@@ -578,16 +578,16 @@ class View(ScrollTaskView):
         self.binder.bind(object.properties.phased_results, self.cards.results.setVisible, lambda x: x is not None)
         self.binder.bind(object.properties.phased_results, self.cards.parameters.setExpanded, lambda x: x is None)
 
-        self.binder.bind(object.output.properties.format, self.cards.output_format.controls.format.setValue)
-        self.binder.bind(self.cards.output_format.controls.format.valueChanged, object.output.properties.format)
-        self.binder.bind(object.output.properties.fasta_separator, self.cards.output_format.controls.separator.setValue)
-        self.binder.bind(self.cards.output_format.controls.separator.valueChanged, object.output.properties.fasta_separator)
-        self.binder.bind(object.output.properties.fasta_concatenate, self.cards.output_format.controls.concatenate.setChecked)
-        self.binder.bind(self.cards.output_format.controls.concatenate.toggled, object.output.properties.fasta_concatenate)
+        self.binder.bind(object.output_options.properties.format, self.cards.output_format.controls.format.setValue)
+        self.binder.bind(self.cards.output_format.controls.format.valueChanged, object.output_options.properties.format)
+        self.binder.bind(object.output_options.properties.fasta_separator, self.cards.output_format.controls.separator.setValue)
+        self.binder.bind(self.cards.output_format.controls.separator.valueChanged, object.output_options.properties.fasta_separator)
+        self.binder.bind(object.output_options.properties.fasta_concatenate, self.cards.output_format.controls.concatenate.setChecked)
+        self.binder.bind(self.cards.output_format.controls.concatenate.toggled, object.output_options.properties.fasta_concatenate)
 
-        self.binder.bind(object.output.properties.fasta_separator_visible, self.cards.output_format.controls.separators.roll.setAnimatedVisible)
-        self.binder.bind(object.output.properties.fasta_concatenate_visible, self.cards.output_format.controls.concatenate.roll.setAnimatedVisible)
-        self.binder.bind(object.output.properties.fasta_config_visible, self.cards.output_format.controls.fasta.roll.setAnimatedVisible)
+        self.binder.bind(object.output_options.properties.fasta_separator_visible, self.cards.output_format.controls.separators.roll.setAnimatedVisible)
+        self.binder.bind(object.output_options.properties.fasta_concatenate_visible, self.cards.output_format.controls.concatenate.roll.setAnimatedVisible)
+        self.binder.bind(object.output_options.properties.fasta_config_visible, self.cards.output_format.controls.fasta.roll.setAnimatedVisible)
 
         self.binder.bind(self.cards.results.view, self.view_results)
         self.binder.bind(self.cards.results.save, self.save_results)
@@ -642,7 +642,10 @@ class View(ScrollTaskView):
         self.window().msgShow(dialog)
 
     def save_results(self):
-        path = self.getSavePath('Save phased sequences', str(self.object.suggested_results))
+        dir = str(self.object.suggested_results)
+        format = self.object.get_output_format()
+        filter = f'{format.label} (*{format.extension})'
+        path = self.getSavePath('Save phased sequences', dir=dir, filter=filter)
         if path:
             self.object.save(path)
 
