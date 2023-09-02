@@ -50,7 +50,7 @@ class Parameters(EnumObject):
         return property.value
 
 
-class OutputModel(PropertyObject):
+class OutputOptionsModel(PropertyObject):
     format = Property(OutputFormat, OutputFormat.Mimic)
 
     fasta_separator = Property(str, '|')
@@ -111,7 +111,7 @@ class Model(TaskModel):
     input_sequences = Property(ImportedInputModel, ImportedInputModel(InputModel))
     parameters = Property(Parameters, Instance)
 
-    output = Property(OutputModel, Instance)
+    output = Property(OutputOptionsModel, Instance)
 
     busy_main = Property(bool, False)
     busy_sequence = Property(bool, False)

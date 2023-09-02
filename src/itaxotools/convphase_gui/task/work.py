@@ -56,6 +56,7 @@ def get_sequences_from_model(input: AttrDict):
                 SequenceHandler.Fasta,
                 parse_organism=input.parse_organism,
                 organism_separator=input.subset_separator,
+                organism_tag='organism',
             )
     raise Exception(f'Cannot create sequences from input: {input}')
 
@@ -71,6 +72,8 @@ def _get_sequences_from_phased_data(
         try:
             # SeqPhase automatically replaces spaces...
             phased_id = sequence.id.replace(' ', '_')
+            # and cuts everything after a bar...
+            phased_id = sequence.id.split('|')[0]
             line = phased_dict[phased_id]
         except KeyError:
             raise Exception(f'Sequence identifier not found in phased data: "{sequence.id}"')
@@ -101,8 +104,32 @@ def get_output_file_handler(
             return get_handler_from_info(output_path, 'w', input_sequences.info)
 
         case OutputFormat.Fasta:
+            info = input_sequences.info
+
+            organism_tag = 'organism'
+            write_organism=input_sequences.has_subsets
+            concatenate_extras = ['allele']
+
+            if info.format == FileFormat.Tabfile:
+                if write_organism:
+                    organism_tag = info.headers[input_sequences.subset_column]
+                if input_sequences.has_extras and output_options.fasta_concatenate:
+                    keys = [
+                        info.headers[input_sequences.index_column],
+                        info.headers[input_sequences.sequence_column],
+                        organism_tag,
+                        'allele',
+                    ]
+                    concatenate_extras = [x for x in info.headers if x not in keys]
+                    concatenate_extras += ['allele']
+
             return SequenceHandler.Fasta(
-                output_path, 'w', organism_separator=output_options.fasta_separator)
+                output_path, 'w',
+                write_organism=write_organism,
+                concatenate_extras=concatenate_extras,
+                organism_separator=output_options.fasta_separator,
+                organism_tag=organism_tag,
+            )
 
         case OutputFormat.Tabfile:
             return SequenceHandler.Tabfile(

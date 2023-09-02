@@ -301,7 +301,7 @@ class InputSequencesSelector(InputSelector):
         type_label_value = QtWidgets.QLabel('Fasta')
         size_label_value = QtWidgets.QLabel('42 MB')
 
-        parse_organism = QtWidgets.QCheckBox('Parse identifiers as "individual|taxon"')
+        parse_organism = QtWidgets.QCheckBox('Parse identifiers as "individual|organism"')
 
         view = QtWidgets.QPushButton('View')
         view.setVisible(False)
@@ -354,7 +354,7 @@ class InputSequencesSelector(InputSelector):
         self.binder.bind(object.properties.file_has_subsets, self.controls.fasta.parse_organism.setVisible)
         self.binder.bind(object.properties.parse_organism, self.controls.fasta.parse_organism.setChecked)
         self.binder.bind(self.controls.fasta.parse_organism.toggled, object.properties.parse_organism)
-        self.binder.bind(object.properties.subset_separator, self.controls.fasta.parse_organism.setText, lambda x: f'Parse identifiers as "individual{x}taxon"')
+        self.binder.bind(object.properties.subset_separator, self.controls.fasta.parse_organism.setText, lambda x: f'Parse identifiers as "individual{x}organism"')
         self.binder.bind(object.properties.info, self.controls.fasta.file_size.setText, lambda info: human_readable_size(info.size))
         self.controls.config.setCurrentWidget(self.controls.fasta.widget)
         self.controls.config.setVisible(True)
