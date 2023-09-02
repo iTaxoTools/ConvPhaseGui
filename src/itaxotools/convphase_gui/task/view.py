@@ -28,7 +28,7 @@ from itaxotools.taxi_gui.types import FileFormat
 from itaxotools.taxi_gui.utility import human_readable_size, type_convert
 from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
 from itaxotools.taxi_gui.view.cards import Card
-from itaxotools.taxi_gui.view.tasks import TaskView
+from itaxotools.taxi_gui.view.tasks import ScrollTaskView
 from itaxotools.taxi_gui.view.widgets import (
     CategoryButton, GLineEdit, LongLabel, MinimumStackedWidget,
     NoWheelComboBox, RadioButtonGroup)
@@ -531,7 +531,7 @@ class ParameterCard(Card):
             f'font-size: 16px; color: Palette({color});')
 
 
-class View(TaskView):
+class View(ScrollTaskView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
