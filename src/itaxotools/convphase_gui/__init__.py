@@ -19,23 +19,6 @@
 """GUI entry point"""
 
 
-def load_resources():
-
-    from PySide6 import QtCore, QtGui
-
-    from itaxotools.common.resources import get_local
-    from itaxotools.common.widgets import VectorPixmap
-    from itaxotools.taxi_gui.app import resources, skin
-
-    root = __package__
-    resources.icons.app = lambda: QtGui.QIcon(
-        get_local(root, 'logos/convphase.ico'))
-    resources.pixmaps.logo_tool = lambda: VectorPixmap(
-        get_local(root, 'logos/convphase.svg'),
-        size=QtCore.QSize(192, 48),
-        colormap=skin.colormap_icon)
-
-
 def find_task():
     from itaxotools.taxi_gui.app import model
 
@@ -63,8 +46,6 @@ def run():
     app = Application()
     app.set_config(config)
     app.set_skin(skin)
-
-    load_resources()
 
     parser = ArgumentParser(description='Convenient Phase')
     parser.add_argument('input', nargs='?', type=str, help='Path to input file')
