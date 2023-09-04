@@ -29,7 +29,7 @@ from itaxotools.taxi_gui.loop import DataQuery
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
 from itaxotools.taxi_gui.tasks.common.model import (
     FileInfoSubtaskModel, ImportedInputModel)
-from itaxotools.taxi_gui.types import FileFormat, Notification
+from itaxotools.taxi_gui.types import FileFormat, FileInfo, Notification
 from itaxotools.taxi_gui.utility import human_readable_seconds
 
 from . import process
@@ -113,7 +113,8 @@ class Model(TaskModel):
 
     output_options = Property(OutputOptionsModel, Instance)
 
-    phased_results = Property(Path, None)
+    phased_path = Property(Path, None)
+    phased_info = Property(FileInfo, None)
     phased_time = Property(float, None)
 
     def __init__(self, name=None):
@@ -170,13 +171,15 @@ class Model(TaskModel):
     def onDone(self, report):
         time_taken = human_readable_seconds(report.result.seconds_taken)
         self.notification.emit(Notification.Info(f'{self.name} completed successfully!\nTime taken: {time_taken}.'))
-        self.phased_results = report.result.output_path
+        self.phased_info = report.result.output_info
+        self.phased_path = report.result.output_info.path
         self.phased_time = report.result.seconds_taken
         self.busy = False
         self.done = True
 
     def clear(self):
-        self.phased_results = None
+        self.phased_info = None
+        self.phased_path = None
         self.phased_time = None
         self.done = False
 
@@ -185,7 +188,7 @@ class Model(TaskModel):
         self.subtask_sequences.start(path)
 
     def save(self, destination: Path):
-        copyfile(self.phased_results, destination)
+        copyfile(self.phased_path, destination)
         self.notification.emit(Notification.Info('Saved file successfully!'))
 
     def get_output_format(self):

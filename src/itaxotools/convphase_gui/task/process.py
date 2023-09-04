@@ -45,7 +45,7 @@ def execute(
     from itaxotools import abort, get_feedback
 
     from .work import (
-        configure_progress_callbacks, get_output_file_handler,
+        configure_progress_callbacks, get_file_info, get_output_file_handler,
         get_phased_sequences, get_sequence_warnings, get_sequences_from_model)
 
     ts = perf_counter()
@@ -85,8 +85,10 @@ def execute(
         for sequence in phased_sequences:
             file.write(sequence)
 
+    output_info = get_file_info(output_path)
+
     tf = perf_counter()
 
     print('Phasing completed successfully!', file=stderr)
 
-    return Results(output_path, tm - ts + tf - tx)
+    return Results(output_info, tm - ts + tf - tx)

@@ -576,9 +576,9 @@ class View(ScrollTaskView):
 
         self._bind_input_selector(self.cards.input_sequences, object.input_sequences, object.subtask_sequences)
 
-        self.binder.bind(object.properties.phased_results, self.cards.results.setPath)
-        self.binder.bind(object.properties.phased_results, self.cards.results.setVisible, lambda x: x is not None)
-        self.binder.bind(object.properties.phased_results, self.cards.parameters.setExpanded, lambda x: x is None)
+        self.binder.bind(object.properties.phased_path, self.cards.results.setPath)
+        self.binder.bind(object.properties.phased_path, self.cards.results.setVisible, lambda x: x is not None)
+        self.binder.bind(object.properties.phased_path, self.cards.parameters.setExpanded, lambda x: x is None)
 
         self.binder.bind(object.output_options.properties.format, self.cards.output_format.controls.format.setValue)
         self.binder.bind(self.cards.output_format.controls.format.valueChanged, object.output_options.properties.format)

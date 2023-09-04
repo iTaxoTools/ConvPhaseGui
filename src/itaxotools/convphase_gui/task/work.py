@@ -26,6 +26,7 @@ from itaxotools.convphase.phase import iter_phase, set_progress_callback
 from itaxotools.convphase.scan import scan_sequences
 from itaxotools.convphase.types import PhasedSequence, UnphasedSequence
 from itaxotools.taxi2.file_types import FileFormat
+from itaxotools.taxi2.files import get_info
 from itaxotools.taxi2.sequences import Sequence, SequenceHandler, Sequences
 from itaxotools.taxi_gui.tasks.common.process import progress_handler
 
@@ -114,7 +115,7 @@ def get_output_file_handler(
             info = input_sequences.info
 
             organism_tag = 'organism'
-            write_organism=input_sequences.has_subsets
+            write_organism = input_sequences.has_subsets
             concatenate_extras = ['allele']
 
             if info.format == FileFormat.Tabfile:
@@ -144,3 +145,7 @@ def get_output_file_handler(
                 idHeader = 'seqid',
                 seqHeader = 'sequence',
             )
+
+
+def get_file_info(path: Path):
+    return get_info(path)

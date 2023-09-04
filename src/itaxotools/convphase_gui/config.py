@@ -19,9 +19,11 @@
 from . import task
 from .resources import icons, pixmaps
 
-
 title = 'ConvPhase'
 icon = icons.convphase
 pixmap = pixmaps.convphase
+
+show_open = True
+show_save = True
 
 tasks = [task]

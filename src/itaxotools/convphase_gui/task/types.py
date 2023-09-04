@@ -18,12 +18,13 @@
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from pathlib import Path
+
+from itaxotools.taxi_gui.types import FileInfo
 
 
 @dataclass
 class Results:
-    output_path: Path
+    output_info: FileInfo
     seconds_taken: float
 
 
