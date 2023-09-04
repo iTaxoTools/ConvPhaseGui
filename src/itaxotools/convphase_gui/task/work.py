@@ -79,6 +79,11 @@ def _get_sequences_from_phased_data(
             line = phased_dict[phased_id]
         except KeyError:
             raise Exception(f'Sequence identifier not found in phased data: "{sequence.id}"')
+
+        for extra, value in sequence.extras.items():
+            if value is None:
+                sequence.extras[extra] = ''
+
         yield Sequence(sequence.id, line.data_a, sequence.extras | {'allele': 'a'})
         yield Sequence(sequence.id, line.data_b, sequence.extras | {'allele': 'b'})
 
