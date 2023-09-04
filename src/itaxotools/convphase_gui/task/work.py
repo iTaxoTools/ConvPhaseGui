@@ -34,6 +34,8 @@ from .types import OutputFormat
 
 def configure_progress_callbacks() -> None:
     set_progress_callback(lambda v, m, t: progress_handler(t, v, m))
+    progress_handler('Computing matrix Q', 0, 1)
+    progress_handler('MCMC resolution', 0, 1)
 
 
 def get_sequence_warnings(sequences: Sequences) -> list[str]:

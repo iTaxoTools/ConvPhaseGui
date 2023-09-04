@@ -545,7 +545,8 @@ class View(ScrollTaskView):
             'citations here',
             self)
         self.cards.results = ResultViewer('Phased sequences', self)
-        self.cards.progress = ProgressCard(self)
+        self.cards.progress_matrix = ProgressCard(self)
+        self.cards.progress_mcmc = ProgressCard(self)
         self.cards.input_sequences = InputSequencesSelector('Input sequences', self)
         self.cards.output_format = OutputFormatCard(self)
         self.cards.parameters = ParameterCard(self)
@@ -564,12 +565,13 @@ class View(ScrollTaskView):
 
         self.binder.bind(object.notification, self.showNotification)
         self.binder.bind(object.request_confirmation, self.requestConfirmation)
-        self.binder.bind(object.progression, self.cards.progress.showProgress)
-        self.binder.bind(object.properties.busy, self.cards.progress.setEnabled)
-        self.binder.bind(object.properties.busy, self.cards.progress.setVisible)
+        self.binder.bind(object.progression, self.cards.progress_matrix.showProgress, condition=lambda x: 'matrix' in x.text)
+        self.binder.bind(object.progression, self.cards.progress_mcmc.showProgress, condition=lambda x: 'MCMC' in x.text)
+        self.binder.bind(object.properties.busy, self.cards.progress_matrix.setEnabled)
+        self.binder.bind(object.properties.busy, self.cards.progress_matrix.setVisible)
+        self.binder.bind(object.properties.busy, self.cards.progress_mcmc.setEnabled)
+        self.binder.bind(object.properties.busy, self.cards.progress_mcmc.setVisible)
 
-        self.binder.bind(object.properties.busy_main, self.cards.progress.setEnabled)
-        self.binder.bind(object.properties.busy_main, self.cards.progress.setVisible)
         self.binder.bind(object.subtask_sequences.properties.busy, self.cards.input_sequences.set_busy)
 
         self._bind_input_selector(self.cards.input_sequences, object.input_sequences, object.subtask_sequences)
@@ -631,7 +633,8 @@ class View(ScrollTaskView):
     def setEditable(self, editable: bool):
         self.cards.title.setEnabled(True)
         self.cards.results.setEnabled(True)
-        self.cards.progress.setEnabled(True)
+        self.cards.progress_matrix.setEnabled(True)
+        self.cards.progress_mcmc.setEnabled(True)
         self.cards.input_sequences.setEnabled(editable)
         self.cards.output_format.setEnabled(editable)
         self.cards.parameters.setContentsEnabled(editable)

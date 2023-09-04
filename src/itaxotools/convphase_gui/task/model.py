@@ -113,9 +113,6 @@ class Model(TaskModel):
 
     output_options = Property(OutputOptionsModel, Instance)
 
-    busy_main = Property(bool, False)
-    busy_sequence = Property(bool, False)
-
     phased_results = Property(Path, None)
     phased_time = Property(float, None)
 
@@ -175,24 +172,8 @@ class Model(TaskModel):
         self.notification.emit(Notification.Info(f'{self.name} completed successfully!\nTime taken: {time_taken}.'))
         self.phased_results = report.result.output_path
         self.phased_time = report.result.seconds_taken
-        self.busy_main = False
         self.busy = False
         self.done = True
-
-    def onStop(self, report):
-        super().onStop(report)
-        self.busy_main = False
-        self.busy_sequence = False
-
-    def onFail(self, report):
-        super().onFail(report)
-        self.busy_main = False
-        self.busy_sequence = False
-
-    def onError(self, report):
-        super().onError(report)
-        self.busy_main = False
-        self.busy_sequence = False
 
     def clear(self):
         self.phased_results = None
