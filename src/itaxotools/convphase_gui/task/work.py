@@ -122,10 +122,11 @@ def get_output_file_handler(
                     )
 
                 case FileFormat.Tabfile:
+                    headers = input_sequences.info.headers
                     return SequenceHandler.Tabfile(
                         output_path, 'w',
-                        idColumn = input_sequences.index_column,
-                        seqColumn = input_sequences.sequence_column,
+                        idHeader = headers[input_sequences.index_column],
+                        seqHeader = headers[input_sequences.sequence_column],
                     )
 
                 case _:
