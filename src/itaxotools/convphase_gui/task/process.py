@@ -46,7 +46,8 @@ def execute(
 
     from .work import (
         configure_progress_callbacks, get_file_info, get_output_file_handler,
-        get_phased_sequences, get_sequence_warnings, get_sequences_from_model)
+        get_output_file_name, get_phased_sequences, get_sequence_warnings,
+        get_sequences_from_model)
 
     ts = perf_counter()
 
@@ -77,6 +78,8 @@ def execute(
     tx = perf_counter()
 
     phased_sequences = get_phased_sequences(sequences, parameters)
+
+    output_path = work_dir / get_output_file_name(output_options, input_sequences)
 
     write_handler = get_output_file_handler(
         output_path, output_options, input_sequences)

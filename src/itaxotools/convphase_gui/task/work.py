@@ -21,7 +21,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from itaxotools.common.utility import AttrDict
-from itaxotools.convphase.files import get_handler_from_info
 from itaxotools.convphase.phase import iter_phase, set_progress_callback
 from itaxotools.convphase.scan import scan_sequences
 from itaxotools.convphase.types import PhasedSequence, UnphasedSequence
@@ -166,6 +165,33 @@ def get_output_file_handler(
                 idHeader = 'seqid',
                 seqHeader = 'sequence',
             )
+
+
+def _get_output_format(
+    output_options: dict,
+    input_sequences: AttrDict,
+) -> str:
+
+    match output_options.format:
+
+        case OutputFormat.Mimic:
+            return input_sequences.info.format
+
+        case OutputFormat.Fasta:
+            return FileFormat.Fasta
+
+        case OutputFormat.Tabfile:
+            return FileFormat.Tabfile
+
+
+def get_output_file_name(
+    output_options: dict,
+    input_sequences: AttrDict,
+) -> str:
+
+    format = _get_output_format(output_options, input_sequences)
+    path = input_sequences.info.path
+    return f'{path.stem}.phased{format.extension}'
 
 
 def get_file_info(path: Path):
