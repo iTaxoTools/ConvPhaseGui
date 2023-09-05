@@ -109,7 +109,27 @@ def get_output_file_handler(
     match output_options.format:
 
         case OutputFormat.Mimic:
-            return get_handler_from_info(output_path, 'w', input_sequences.info)
+
+            match input_sequences.info.format:
+
+                case FileFormat.Fasta:
+                    return SequenceHandler.Fasta(
+                        output_path, 'w',
+                        write_organism=input_sequences.info.has_subsets,
+                        concatenate_extras=['allele'],
+                        organism_separator=input_sequences.info.subset_separator,
+                        organism_tag='organism',
+                    )
+
+                case FileFormat.Tabfile:
+                    return SequenceHandler.Tabfile(
+                        output_path, 'w',
+                        idColumn = input_sequences.index_column,
+                        seqColumn = input_sequences.sequence_column,
+                    )
+
+                case _:
+                    raise ValueError(f'Unknown format: {input_sequences.info}')
 
         case OutputFormat.Fasta:
             info = input_sequences.info

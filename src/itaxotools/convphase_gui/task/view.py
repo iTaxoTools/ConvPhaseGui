@@ -600,6 +600,7 @@ class View(ScrollTaskView):
             self.binder.bind(entry.textEditedSafe, property, lambda x: type_convert(x, param.type, None))
             self.binder.bind(property, entry.setText, lambda x: type_convert(x, str, ''))
 
+        # defined last to override `set_busy` calls
         self.binder.bind(object.properties.editable, self.setEditable)
 
     def _bind_input_selector(self, card, object, subtask):
