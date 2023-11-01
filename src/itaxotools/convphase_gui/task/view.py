@@ -132,6 +132,10 @@ class ResultViewer(Card):
 
         check = QtWidgets.QLabel('\u2714')
         check.setStyleSheet("""font-size: 16px; color: Palette(Shadow);""")
+        font = check.font()
+        font.setStyleStrategy(QtGui.QFont.PreferAntialias)
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
+        check.setFont(font)
 
         save = QtWidgets.QPushButton('Save')
         save.clicked.connect(self.handleSave)
@@ -354,7 +358,7 @@ class InputSequencesSelector(InputSelector):
         self.binder.bind(object.properties.file_has_subsets, self.controls.fasta.parse_organism.setVisible)
         self.binder.bind(object.properties.parse_organism, self.controls.fasta.parse_organism.setChecked)
         self.binder.bind(self.controls.fasta.parse_organism.toggled, object.properties.parse_organism)
-        self.binder.bind(object.properties.subset_separator, self.controls.fasta.parse_organism.setText, lambda x: f'Parse identifiers as "individual{x}organism"')
+        self.binder.bind(object.properties.subset_separator, self.controls.fasta.parse_organism.setText, lambda x: f'Parse identifiers as "individual{x or "/"}organism"')
         self.binder.bind(object.properties.info, self.controls.fasta.file_size.setText, lambda info: human_readable_size(info.size))
         self.controls.config.setCurrentWidget(self.controls.fasta.widget)
         self.controls.config.setVisible(True)
