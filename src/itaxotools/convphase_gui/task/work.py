@@ -191,7 +191,7 @@ def get_output_file_name(
 
     format = _get_output_format(output_options, input_sequences)
     path = input_sequences.info.path
-    return f'{path.stem}.phased{format.extension}'
+    return f'{path.stem}_phased{format.extension}'
 
 
 def get_file_info(path: Path):

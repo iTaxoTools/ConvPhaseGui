@@ -204,4 +204,4 @@ class Model(TaskModel):
     def suggested_results(self):
         format = self.get_output_format()
         path = self.input_sequences.object.info.path
-        return path.parent / f'{path.stem}.phased{format.extension}'
+        return path.parent / f'{path.stem}_phased{format.extension}'
