@@ -22,8 +22,10 @@ from pathlib import Path
 
 from itaxotools.common.utility import AttrDict
 from itaxotools.convphase.phase import iter_phase, set_progress_callback
-from itaxotools.convphase.scan import scan_sequences
-from itaxotools.convphase.types import PhasedSequence, UnphasedSequence
+from itaxotools.convphase.scan import (
+    scan_input_sequences, scan_output_sequences)
+from itaxotools.convphase.types import (
+    PhasedSequence, PhaseWarning, UnphasedSequence)
 from itaxotools.taxi2.file_types import FileFormat
 from itaxotools.taxi2.files import get_info
 from itaxotools.taxi2.sequences import Sequence, SequenceHandler, Sequences
@@ -38,8 +40,8 @@ def configure_progress_callbacks() -> None:
     progress_handler('MCMC resolution', 0, 1)
 
 
-def get_sequence_warnings(sequences: Sequences) -> list[str]:
-    return [str(w) for w in scan_sequences(sequences)]
+def get_input_sequence_warnings(sequences: Sequences) -> list[str]:
+    return [str(w) for w in scan_input_sequences(sequences)]
 
 
 def get_sequences_from_model(input: AttrDict):
@@ -96,7 +98,7 @@ def get_phased_sequences(
     unphased = (UnphasedSequence(sequence.id, sequence.seq) for sequence in sequences)
     phased = iter_phase(unphased, **parameters)
 
-    return Sequences(_get_sequences_from_phased_data(sequences, phased))
+    return Sequences(list(_get_sequences_from_phased_data(sequences, phased)))
 
 
 def get_output_file_handler(
@@ -196,3 +198,13 @@ def get_output_file_name(
 
 def get_file_info(path: Path):
     return get_info(path)
+
+
+def get_output_sequence_ambiguity(sequences: Sequences) -> tuple[bool, str]:
+    ambiguous = False
+    warning = ''
+    for warning in scan_output_sequences(sequences):
+        if isinstance(warning, PhaseWarning.Ambiguity):
+            ambiguous = True
+            warning = 'WARNING: ' + str(warning)
+    return ambiguous, warning

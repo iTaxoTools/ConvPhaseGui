@@ -1,6 +1,8 @@
 
 description = 'Use PHASE v2.1 to reconstruct haplotypes from population genotype data.\nInput and output is done with FASTA or TSV files via SeqPhase.'
 
+ambiguity = 'This can happen if the probability thresholds were set too high in the parameters. Consider reducing the phase and allele thresholds (referred to as -p and -q in the PHASE documentation) and rerunning the program. Keep in mind that lowering these thresholds may affect the reliability of the results.'
+
 author_1 = 'ConvPhase by Jan-Christopher Schmidt.'
 author_2 = 'Gui by Stefanos Patmanidis.'
 authors = author_1 + '\n' + author_2

@@ -137,6 +137,13 @@ class ResultViewer(Card):
         font.setHintingPreference(QtGui.QFont.PreferNoHinting)
         check.setFont(font)
 
+        cross = QtWidgets.QLabel('\u2718')
+        cross.setStyleSheet("""font-size: 16px; color: Palette(Shadow);""")
+        font = cross.font()
+        font.setStyleStrategy(QtGui.QFont.PreferAntialias)
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
+        cross.setFont(font)
+
         save = QtWidgets.QPushButton('Save')
         save.clicked.connect(self.handleSave)
 
@@ -148,6 +155,7 @@ class ResultViewer(Card):
         layout.addWidget(label)
         layout.addSpacing(12)
         layout.addWidget(check)
+        layout.addWidget(cross)
         layout.addStretch(1)
         layout.addWidget(save)
         layout.addSpacing(16)
@@ -156,6 +164,8 @@ class ResultViewer(Card):
 
         self.controls.view = view
         self.controls.save = save
+        self.controls.check = check
+        self.controls.cross = cross
 
     def setPath(self, path):
         self.path = path
@@ -166,6 +176,42 @@ class ResultViewer(Card):
 
     def handleSave(self):
         self.save.emit(self.text, self.path)
+
+
+class WarningViewer(Card):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setContentsMargins(6, 2, 6, 2)
+
+        arrow = QtWidgets.QLabel('\u2937')
+        arrow.setStyleSheet('padding-bottom: 4px;')
+        font = arrow.font()
+        font.setBold(True)
+        font.setStyleStrategy(QtGui.QFont.PreferAntialias)
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
+        arrow.setFont(font)
+
+        arrow_layout = QtWidgets.QVBoxLayout()
+        arrow_layout.addWidget(arrow)
+        arrow_layout.addStretch(1)
+
+        warning = LongLabel('WARNING GOES HERE')
+        explanation = LongLabel(strings.ambiguity)
+
+        title_layout = QtWidgets.QHBoxLayout()
+        title_layout.setSpacing(4)
+        title_layout.addLayout(arrow_layout)
+        title_layout.addWidget(warning, 1)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 10, 0)
+        layout.setSpacing(12)
+        layout.addLayout(title_layout)
+        layout.addWidget(explanation)
+
+        self.addLayout(layout)
+
+        self.warning = warning
 
 
 class ResultDialog(QtWidgets.QDialog):
@@ -549,6 +595,7 @@ class View(ScrollTaskView):
             'citations here',
             self)
         self.cards.results = ResultViewer('Phased sequences', self)
+        self.cards.warnings = WarningViewer(self)
         self.cards.progress_matrix = ProgressCard(self)
         self.cards.progress_mcmc = ProgressCard(self)
         self.cards.input_sequences = InputSequencesSelector('Input sequences', self)
@@ -583,6 +630,10 @@ class View(ScrollTaskView):
         self.binder.bind(object.properties.phased_path, self.cards.results.setPath)
         self.binder.bind(object.properties.phased_path, self.cards.results.setVisible, lambda x: x is not None)
         self.binder.bind(object.properties.phased_path, self.cards.parameters.setExpanded, lambda x: x is None)
+        self.binder.bind(object.properties.phased_ambiguous, self.cards.results.controls.check.setVisible, lambda x: not x)
+        self.binder.bind(object.properties.phased_ambiguous, self.cards.results.controls.cross.setVisible)
+        self.binder.bind(object.properties.phased_ambiguous, self.cards.warnings.setVisible)
+        self.binder.bind(object.properties.phased_warning, self.cards.warnings.warning.setText)
 
         self.binder.bind(object.output_options.properties.format, self.cards.output_format.controls.format.setValue)
         self.binder.bind(self.cards.output_format.controls.format.valueChanged, object.output_options.properties.format)
@@ -599,10 +650,7 @@ class View(ScrollTaskView):
         self.binder.bind(self.cards.results.save, self.save_results)
 
         for param in Parameter:
-            entry = self.cards.parameters.controls.entries[param.key]
-            property = object.parameters.properties[param.key]
-            self.binder.bind(entry.textEditedSafe, property, lambda x: type_convert(x, param.type, None))
-            self.binder.bind(property, entry.setText, lambda x: type_convert(x, str, ''))
+            self._bind_param_field(param, object)
 
         # defined last to override `set_busy` calls
         self.binder.bind(object.properties.editable, self.setEditable)
@@ -613,6 +661,12 @@ class View(ScrollTaskView):
         self.binder.bind(object.properties.model, card.set_model)
         self.binder.bind(object.properties.index, card.set_index)
         self.binder.bind(object.properties.object, card.bind_object)
+
+    def _bind_param_field(self, param, object):
+            entry = self.cards.parameters.controls.entries[param.key]
+            property = object.parameters.properties[param.key]
+            self.binder.bind(entry.textEditedSafe, property, lambda x: type_convert(x, param.type, None))
+            self.binder.bind(property, entry.setText, lambda x: type_convert(x, str, ''))
 
     def requestConfirmation(self, warns, callback, abort):
         msgBox = QtWidgets.QMessageBox(self.window())

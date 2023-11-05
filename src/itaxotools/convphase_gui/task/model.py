@@ -117,6 +117,9 @@ class Model(TaskModel):
     phased_info = Property(FileInfo, None)
     phased_time = Property(float, None)
 
+    phased_ambiguous = Property(bool, False)
+    phased_warning = Property(str, '')
+
     def __init__(self, name=None):
         super().__init__(name)
         self.can_open = True
@@ -170,10 +173,15 @@ class Model(TaskModel):
 
     def onDone(self, report):
         time_taken = human_readable_seconds(report.result.seconds_taken)
-        self.notification.emit(Notification.Info(f'{self.name} completed successfully!\nTime taken: {time_taken}.'))
+        if report.result.ambiguous:
+            self.notification.emit(Notification.Warn(f'{self.name} completed with warnings!\nTime taken: {time_taken}.'))
+        else:
+            self.notification.emit(Notification.Info(f'{self.name} completed sucessfully!\nTime taken: {time_taken}.'))
         self.phased_info = report.result.output_info
         self.phased_path = report.result.output_info.path
         self.phased_time = report.result.seconds_taken
+        self.phased_ambiguous = report.result.ambiguous
+        self.phased_warning = report.result.warning
         self.busy = False
         self.done = True
 
@@ -181,6 +189,8 @@ class Model(TaskModel):
         self.phased_info = None
         self.phased_path = None
         self.phased_time = None
+        self.phased_ambiguous = False
+        self.phased_warning = ''
         self.done = False
 
     def open(self, path):
