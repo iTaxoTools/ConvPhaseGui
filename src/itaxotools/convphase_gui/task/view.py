@@ -25,13 +25,13 @@ from itaxotools.common.widgets import VLineSeparator
 from itaxotools.taxi_gui import app
 from itaxotools.taxi_gui.tasks.common.view import InputSelector, ProgressCard
 from itaxotools.taxi_gui.types import FileFormat
-from itaxotools.taxi_gui.utility import human_readable_size, type_convert
+from itaxotools.taxi_gui.utility import human_readable_size
 from itaxotools.taxi_gui.view.animations import VerticalRollAnimation
 from itaxotools.taxi_gui.view.cards import Card
 from itaxotools.taxi_gui.view.tasks import ScrollTaskView
 from itaxotools.taxi_gui.view.widgets import (
-    CategoryButton, GLineEdit, LongLabel, MinimumStackedWidget,
-    NoWheelComboBox, RadioButtonGroup)
+    CategoryButton, LongLabel, MinimumStackedWidget, NoWheelComboBox,
+    RadioButtonGroup, UnscrollableDoubleSpinBox, UnscrollableSpinBox)
 
 from . import strings
 from .types import OutputFormat, Parameter
@@ -528,18 +528,10 @@ class ParameterCard(Card):
         layout.setContentsMargins(0, 4, 0, 4)
         layout.setHorizontalSpacing(16)
         layout.setVerticalSpacing(8)
-        layout.setColumnStretch(2, 1)
+        layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(2, 3)
         layout.setColumnMinimumWidth(0, 168)
         row = 0
-
-        int_validator = QtGui.QIntValidator(self)
-
-        double_validator = QtGui.QDoubleValidator(self)
-        locale = QtCore.QLocale.c()
-        locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
-        double_validator.setLocale(locale)
-        double_validator.setBottom(0)
-        double_validator.setTop(1)
 
         entries = {}
 
@@ -548,10 +540,7 @@ class ParameterCard(Card):
             description = QtWidgets.QLabel(param.description)
             description.setStyleSheet("QLabel { font-style: italic; color: Palette(Shadow);}")
 
-            entry = GLineEdit('')
-            entry.setPlaceholderText(str(param.default))
-            validator = int_validator if param.type == int else double_validator
-            entry.setValidator(validator)
+            entry = self.get_int_entry() if param.type is int else self.get_float_entry()
             entries[param.key] = entry
 
             layout.addWidget(label, row, 0)
@@ -565,6 +554,28 @@ class ParameterCard(Card):
 
         self.controls.contents = widget
         self.controls.entries = entries
+
+    def get_int_entry(self):
+        entry = UnscrollableSpinBox()
+        entry.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum,
+            QtWidgets.QSizePolicy.Policy.Minimum)
+        entry.setMinimumWidth(100)
+        entry.setMinimum(0)
+        entry.setMaximum(999999)
+        entry.setSingleStep(1)
+        return entry
+
+    def get_float_entry(self):
+        entry = UnscrollableDoubleSpinBox()
+        entry.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum,
+            QtWidgets.QSizePolicy.Policy.Minimum)
+        entry.setMinimumWidth(100)
+        entry.setMinimum(0.0)
+        entry.setMaximum(1.0)
+        entry.setSingleStep(0.05)
+        return entry
 
     def setExpanded(self, expanded):
         self.controls.title.setChecked(expanded)
@@ -663,10 +674,10 @@ class View(ScrollTaskView):
         self.binder.bind(object.properties.object, card.bind_object)
 
     def _bind_param_field(self, param, object):
-            entry = self.cards.parameters.controls.entries[param.key]
-            property = object.parameters.properties[param.key]
-            self.binder.bind(entry.textEditedSafe, property, lambda x: type_convert(x, param.type, None))
-            self.binder.bind(property, entry.setText, lambda x: type_convert(x, str, ''))
+        entry = self.cards.parameters.controls.entries[param.key]
+        property = object.parameters.properties[param.key]
+        self.binder.bind(entry.valueChanged, property)
+        self.binder.bind(property, entry.setValue)
 
     def requestConfirmation(self, warns, callback, abort):
         msgBox = QtWidgets.QMessageBox(self.window())

@@ -31,8 +31,8 @@ class Results:
 
 
 class Parameter(Enum):
-    PhaseThreshold = 'Phase threshold (-p)', 'Phase certainty from 0 to 1.0.', 'phase_threshold', float, 0.9
-    AlleleThreshold = 'Allele threshold (-q)', 'Genotype certainty from 0 to 1.0.', 'allele_threshold', float, 0.9
+    PhaseThreshold = 'Phase threshold (-p)', 'Minimum phase certainty from 0 to 1.', 'phase_threshold', float, 0.9
+    AlleleThreshold = 'Allele threshold (-q)', 'Minimum genotype certainty from 0 to 1.', 'allele_threshold', float, 0.9
     NumberOfIterations = 'Number of iterations', 'Number of MCMC iterations.', 'number_of_iterations', int, 100
     ThinningInterval = 'Thinning interval', 'Thinning interval.', 'thinning_interval', int, 1
     BurnIn = 'Burn in', 'Burn in.', 'burn_in', int, 100
