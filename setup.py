@@ -11,7 +11,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='convphase-gui',
-    version='0.0.1',
+    version='0.1.0',
     description='A Qt GUI for ConvPhase',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -24,10 +24,10 @@ setup(
     ),
     python_requires='>=3.10.2, <4',
     install_requires=[
-        'convphase==0.1.0',
-        'taxi-gui==0.2.0',
-        'itaxotools-common==0.3.0',
-        'pyside6>=6.1.1',
+        'convphase==0.1.1',
+        'taxi-gui==0.2.1',
+        'itaxotools-common==0.3.1',
+        'pyside6>=6.6.0',
     ],
     extras_require={
         'dev': [

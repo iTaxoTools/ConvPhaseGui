@@ -15,8 +15,6 @@ Download and run the standalone executables without installing Python.</br>
 
 For information on how to use the program, please refer to the 1st section of the [Hapsolutely manual](https://itaxotools.org/Hapsolutely_manual_07Nov2023.pdf).
 
-If you installed from source, use `convphase-gui` to launch the GUI.
-
 ## Installing from source
 
 Clone and install the latest version (requires Python 3.10.2 or later):
@@ -25,9 +23,10 @@ Clone and install the latest version (requires Python 3.10.2 or later):
 git clone https://github.com/iTaxoTools/ConvPhaseGui.git
 cd ConvPhaseGui
 pip install . -f packages.html
+convphase-gui
 ```
 
-If you are also copiling *ConvPhase*, you will need all of its [dependencies](https://github.com/iTaxoTools/ConvPhase#dependencies).
+If you are also compiling *ConvPhase*, you will need all of its [dependencies](https://github.com/iTaxoTools/ConvPhase#dependencies).
 
 
 ### Packaging
@@ -39,6 +38,12 @@ pyinstaller scripts/convphase.spec
 ```
 
 ## Citations
+
+*ConvPhaseGui* was developed in the framework of the *iTaxoTools* project:
+
+*Vences M. et al. (2021): iTaxoTools 0.1: Kickstarting a specimen-based software toolkit for taxonomists. - Megataxa 6: 77-92.*
+
+Sequences are phased using *PHASE* and *SeqPHASE*:
 
 *Stephens, M., Smith, N., and Donnelly, P. (2001). A new statistical method for haplotype reconstruction from population data. American Journal of Human Genetics, 68, 978--989.*
 
