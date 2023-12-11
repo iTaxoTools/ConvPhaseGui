@@ -635,7 +635,7 @@ class ParameterCard(Card):
 
     def handleToggled(self, checked):
         self.controls.contents.setVisible(checked)
-        QtCore.QTimer.singleShot(10, self.update)
+        self.update()
 
     def setContentsEnabled(self, enabled):
         self.controls.contents.setEnabled(enabled)
