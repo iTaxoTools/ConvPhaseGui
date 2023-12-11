@@ -19,7 +19,7 @@
 from . import task
 from .resources import icons, pixmaps
 
-title = 'ConvPhase'
+title = "ConvPhase"
 icon = icons.convphase
 pixmap = pixmaps.convphase
 

@@ -23,12 +23,19 @@ from pathlib import Path
 from shutil import copyfile
 
 from itaxotools.common.bindings import (
-    Binder, EnumObject, Instance, Property, PropertyObject)
+    Binder,
+    EnumObject,
+    Instance,
+    Property,
+    PropertyObject,
+)
 from itaxotools.common.utility import AttrDict
 from itaxotools.taxi_gui.loop import DataQuery
 from itaxotools.taxi_gui.model.tasks import SubtaskModel, TaskModel
 from itaxotools.taxi_gui.tasks.common.model import (
-    FileInfoSubtaskModel, ImportedInputModel)
+    FileInfoSubtaskModel,
+    ImportedInputModel,
+)
 from itaxotools.taxi_gui.types import FileFormat, FileInfo, Notification
 from itaxotools.taxi_gui.utility import human_readable_seconds
 
@@ -53,7 +60,7 @@ class Parameters(EnumObject):
 class OutputOptionsModel(PropertyObject):
     format = Property(OutputFormat, OutputFormat.Mimic)
 
-    fasta_separator = Property(str, '|')
+    fasta_separator = Property(str, "|")
     fasta_concatenate = Property(bool, False)
 
     fasta_config_visible = Property(bool, False)
@@ -76,22 +83,35 @@ class OutputOptionsModel(PropertyObject):
         if object is None:
             return
 
-        if object.info.format == FileFormat.Fasta and object.info.subset_separator in ['|', '.']:
+        if object.info.format == FileFormat.Fasta and object.info.subset_separator in [
+            "|",
+            ".",
+        ]:
             self.fasta_separator = object.info.subset_separator
 
-        self.binder.bind(object.properties.has_subsets, self.properties.fasta_separator_visible)
-        self.binder.bind(object.properties.has_extras, self.properties.fasta_concatenate_visible)
+        self.binder.bind(
+            object.properties.has_subsets, self.properties.fasta_separator_visible
+        )
+        self.binder.bind(
+            object.properties.has_extras, self.properties.fasta_concatenate_visible
+        )
 
-        self.binder.bind(object.properties.has_subsets, self._update_fasta_config_visible)
-        self.binder.bind(object.properties.has_extras, self._update_fasta_config_visible)
+        self.binder.bind(
+            object.properties.has_subsets, self._update_fasta_config_visible
+        )
+        self.binder.bind(
+            object.properties.has_extras, self._update_fasta_config_visible
+        )
 
     def _check_fasta_config_visible(self):
         if self.format != OutputFormat.Fasta:
             return False
-        if any((
-            self.fasta_separator_visible,
-            self.fasta_concatenate_visible,
-        )):
+        if any(
+            (
+                self.fasta_separator_visible,
+                self.fasta_concatenate_visible,
+            )
+        ):
             return True
         return False
 
@@ -104,7 +124,7 @@ class OutputOptionsModel(PropertyObject):
 
 
 class Model(TaskModel):
-    task_name = 'ConvPhase'
+    task_name = "ConvPhase"
 
     request_confirmation = QtCore.Signal(object, object, object)
 
@@ -118,7 +138,7 @@ class Model(TaskModel):
     phased_time = Property(float, None)
 
     phased_ambiguous = Property(bool, False)
-    phased_warning = Property(str, '')
+    phased_warning = Property(str, "")
 
     def __init__(self, name=None):
         super().__init__(name)
@@ -130,7 +150,9 @@ class Model(TaskModel):
         self.subtask_sequences = FileInfoSubtaskModel(self)
         self.binder.bind(self.subtask_sequences.done, self.input_sequences.add_info)
 
-        self.binder.bind(self.input_sequences.properties.object, self.output_options.set_input_object)
+        self.binder.bind(
+            self.input_sequences.properties.object, self.output_options.set_input_object
+        )
         self.binder.bind(self.input_sequences.notification, self.notification)
 
         self.binder.bind(self.query, self.on_query)
@@ -154,7 +176,6 @@ class Model(TaskModel):
         self.exec(
             process.execute,
             work_dir=work_dir,
-
             input_sequences=self.input_sequences.as_dict(),
             output_options=self.output_options.as_dict(),
             parameters=self.parameters.as_dict(),
@@ -174,9 +195,17 @@ class Model(TaskModel):
     def onDone(self, report):
         time_taken = human_readable_seconds(report.result.seconds_taken)
         if report.result.ambiguous:
-            self.notification.emit(Notification.Warn(f'{self.name} completed with warnings!\nTime taken: {time_taken}.'))
+            self.notification.emit(
+                Notification.Warn(
+                    f"{self.name} completed with warnings!\nTime taken: {time_taken}."
+                )
+            )
         else:
-            self.notification.emit(Notification.Info(f'{self.name} completed sucessfully!\nTime taken: {time_taken}.'))
+            self.notification.emit(
+                Notification.Info(
+                    f"{self.name} completed sucessfully!\nTime taken: {time_taken}."
+                )
+            )
         self.phased_info = report.result.output_info
         self.phased_path = report.result.output_info.path
         self.phased_time = report.result.seconds_taken
@@ -190,7 +219,7 @@ class Model(TaskModel):
         self.phased_path = None
         self.phased_time = None
         self.phased_ambiguous = False
-        self.phased_warning = ''
+        self.phased_warning = ""
         self.done = False
 
     def open(self, path):
@@ -199,7 +228,7 @@ class Model(TaskModel):
 
     def save(self, destination: Path):
         copyfile(self.phased_path, destination)
-        self.notification.emit(Notification.Info('Saved file successfully!'))
+        self.notification.emit(Notification.Info("Saved file successfully!"))
 
     def get_output_format(self):
         match self.output_options.format:
@@ -214,4 +243,4 @@ class Model(TaskModel):
     def suggested_results(self):
         format = self.get_output_format()
         path = self.input_sequences.object.info.path
-        return path.parent / f'{path.stem}_phased{format.extension}'
+        return path.parent / f"{path.stem}_phased{format.extension}"

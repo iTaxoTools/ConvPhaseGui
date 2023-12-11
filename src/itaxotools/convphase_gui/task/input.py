@@ -25,7 +25,7 @@ from itaxotools.common.utility import AttrDict, DecoratorDict
 from itaxotools.taxi_gui.model.common import Object, Property
 from itaxotools.taxi_gui.types import FileInfo
 
-FileInfoType = TypeVar('FileInfoType', bound=FileInfo)
+FileInfoType = TypeVar("FileInfoType", bound=FileInfo)
 
 models = DecoratorDict[FileInfo, Object]()
 
@@ -38,7 +38,7 @@ class InputModel(Object, Generic[FileInfoType]):
     def __init__(self, info: FileInfo):
         super().__init__()
         self.info = info
-        self.name = f'Sequences from {info.path.name}'
+        self.name = f"Sequences from {info.path.name}"
 
     def __repr__(self):
         return f'{".".join(self._get_name_chain())}({repr(self.name)})'
@@ -51,8 +51,8 @@ class InputModel(Object, Generic[FileInfoType]):
 
     @classmethod
     def from_file_info(cls, info: FileInfoType) -> InputModel[FileInfoType]:
-        if not type(info) in models:
-            raise Exception(f'No suitable {cls.__name__} for info: {info}')
+        if type(info) not in models:
+            raise Exception(f"No suitable {cls.__name__} for info: {info}")
         return models[type(info)](info)
 
 
@@ -60,7 +60,7 @@ class InputModel(Object, Generic[FileInfoType]):
 class Fasta(InputModel):
     file_has_subsets = Property(bool, False)
     parse_organism = Property(bool, False)
-    subset_separator = Property(str, '|')
+    subset_separator = Property(str, "|")
 
     def __init__(self, info: FileInfo.Fasta):
         super().__init__(info)
@@ -83,12 +83,16 @@ class Tabfile(InputModel):
         super().__init__(info)
         self.index_column = self._header_get(info.headers, info.header_individuals)
         self.sequence_column = self._header_get(info.headers, info.header_sequences)
-        species_column = self._header_get(info.headers, 'species')
-        genera_column = self._header_get(info.headers, 'genera')
+        species_column = self._header_get(info.headers, "species")
+        genera_column = self._header_get(info.headers, "genera")
         self.subset_column = species_column if species_column >= 0 else genera_column
 
         self.binder = Binder()
-        self.binder.bind(self.properties.subset_column, self.properties.has_subsets, lambda column: column >= 0)
+        self.binder.bind(
+            self.properties.subset_column,
+            self.properties.has_subsets,
+            lambda column: column >= 0,
+        )
         self.binder.bind(self.properties.index_column, self.update_has_extras)
         self.binder.bind(self.properties.sequence_column, self.update_has_extras)
         self.binder.bind(self.properties.subset_column, self.update_has_extras)

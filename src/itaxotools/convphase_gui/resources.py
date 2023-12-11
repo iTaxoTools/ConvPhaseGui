@@ -24,14 +24,14 @@ from itaxotools.taxi_gui.app import skin
 from itaxotools.taxi_gui.app.resources import LazyResourceCollection
 
 icons = LazyResourceCollection(
-    convphase = lambda: QtGui.QIcon(
-        get_local(__package__, 'logos/convphase.ico')),
+    convphase=lambda: QtGui.QIcon(get_local(__package__, "logos/convphase.ico")),
 )
 
 
 pixmaps = LazyResourceCollection(
-    convphase = lambda: VectorPixmap(
-        get_local(__package__, 'logos/convphase.svg'),
+    convphase=lambda: VectorPixmap(
+        get_local(__package__, "logos/convphase.svg"),
         size=QtCore.QSize(192, 48),
-        colormap=skin.colormap_icon)
+        colormap=skin.colormap_icon,
+    )
 )

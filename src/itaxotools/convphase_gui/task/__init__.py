@@ -1,3 +1,2 @@
-
-title = 'ConvPhase'
-description = 'A convenient phase program'
+title = "ConvPhase"
+description = "A convenient phase program"
