@@ -1,33 +1,45 @@
 # ConvPhaseGui
 
+[![PyPI - Version](https://img.shields.io/pypi/v/itaxotools-convphase-gui?color=tomato)](
+    https://pypi.org/project/itaxotools-convphase-gui)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/itaxotools-convphase-gui)](
+    https://pypi.org/project/itaxotools-convphase-gui)
+[![GitHub - Tests](https://img.shields.io/github/actions/workflow/status/iTaxoTools/ConvPhaseGui/test.yml?label=tests)](
+    https://github.com/iTaxoTools/ConvPhaseGui/actions/workflows/test.yml)
+[![GitHub - Windows](https://img.shields.io/github/actions/workflow/status/iTaxoTools/ConvPhaseGui/windows.yml?label=windows)](
+    https://github.com/iTaxoTools/ConvPhaseGui/actions/workflows/windows.yml)
+[![GitHub - macOS](https://img.shields.io/github/actions/workflow/status/iTaxoTools/ConvPhaseGui/macos.yml?label=macos)](
+    https://github.com/iTaxoTools/ConvPhaseGui/actions/workflows/macos.yml)
+
 Reconstruct haplotypes from sequence data. Input and output can be in TSV or FASTA format.
 
 This is a Qt GUI for [ConvPhase](https://github.com/iTaxoTools/ConvPhase), a convenient phase program that combines [PHASE](https://github.com/stephens999/phase) and [SeqPHASE](https://github.com/eeg-ebe/SeqPHASE).
 
-![Screenshot](images/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/iTaxoTools/ConvPhaseGui/v0.1.0/images/screenshot.png)
 
-## Windows and macOS Executables
+## Executables
 
-Download and run the standalone executables without installing Python.</br>
-[See the latest release here.](https://github.com/iTaxoTools/ConvPhaseGui/releases/latest)
+Download and run the standalone executables without installing Python.
+
+[![Release](https://img.shields.io/badge/release-0.2.0-red?style=for-the-badge)](
+    https://github.com/iTaxoTools/ConvPhaseGui/releases/v0.2.0)
+[![Windows](https://img.shields.io/badge/Windows-blue.svg?style=for-the-badge&logo=windows)](
+    https://github.com/iTaxoTools/ConvPhaseGui/releases/download/v0.2.0/ConvPhase-0.2.0-windows-x64.exe)
+[![MacOS](https://img.shields.io/badge/macOS-slategray.svg?style=for-the-badge&logo=apple)](
+    https://github.com/iTaxoTools/ConvPhaseGui/releases/download/v0.2.0/ConvPhase-0.2.0-macos-universal2.dmg)
+
+## Installation
+
+ConvPhaseGui is available on PyPI. You can install it through `pip`:
+
+```
+pip install itaxotools-taxi-gui
+convphase-gui
+```
 
 ## Usage
 
 For information on how to use the program, please refer to the 1st section of the [Hapsolutely manual](https://itaxotools.org/Hapsolutely_manual_07Nov2023.pdf).
-
-## Installing from source
-
-Clone and install the latest version (requires Python 3.10.2 or later):
-
-```
-git clone https://github.com/iTaxoTools/ConvPhaseGui.git
-cd ConvPhaseGui
-pip install . -f packages.html
-convphase-gui
-```
-
-If you are also compiling *ConvPhase*, you will need all of its [dependencies](https://github.com/iTaxoTools/ConvPhase#dependencies).
-
 
 ### Packaging
 
