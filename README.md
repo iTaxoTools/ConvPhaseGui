@@ -41,14 +41,6 @@ convphase-gui
 
 For information on how to use the program, please refer to the 1st section of the [Hapsolutely manual](https://itaxotools.org/Hapsolutely_manual_07Nov2023.pdf).
 
-### Packaging
-
-It is recommended to use PyInstaller from within a virtual environment:
-```
-pip install ".[dev]" -f packages.html
-pyinstaller scripts/convphase.spec
-```
-
 ## Citations
 
 *ConvPhaseGui* was developed in the framework of the *iTaxoTools* project:
